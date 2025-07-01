@@ -1,5 +1,7 @@
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required
+from werkzeug.security import generate_password_hash, check_password_hash
 import os
 import uuid
 import sqlite3
@@ -12,10 +14,23 @@ import shutil
 from werkzeug.utils import secure_filename
 from PIL import Image
 from io import BytesIO
+from datetime import timedelta
 # from pydub import AudioSegment  # Disabled due to Python 3.13 compatibility
 
 app = Flask(__name__)
-CORS(app)
+app.config['SECRET_KEY'] = 'dev-secret-key'
+app.config['JWT_SECRET_KEY'] = 'jwt-secret-key'
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=24)
+
+jwt = JWTManager(app)
+CORS(app, origins="*", methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"], allow_headers=["*"])
+
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    return response
 
 # Create database
 def init_db():
@@ -24,8 +39,89 @@ def init_db():
     c.execute('''CREATE TABLE IF NOT EXISTS files (
         id TEXT PRIMARY KEY,
         filename TEXT,
-        status TEXT DEFAULT 'completed'
+        status TEXT DEFAULT 'pending',
+        from_format TEXT,
+        to_format TEXT,
+        file_size INTEGER,
+        upload_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        download_count INTEGER DEFAULT 0,
+        error_message TEXT,
+        completion_date TIMESTAMP
     )''')
+    
+    # Add missing columns if they don't exist
+    try:
+        c.execute('ALTER TABLE files ADD COLUMN upload_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP')
+    except sqlite3.OperationalError:
+        pass
+    try:
+        c.execute('ALTER TABLE files ADD COLUMN download_count INTEGER DEFAULT 0')
+    except sqlite3.OperationalError:
+        pass
+    
+    c.execute('''CREATE TABLE IF NOT EXISTS admin_users (
+        id TEXT PRIMARY KEY,
+        username TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )''')
+    
+    # Blog posts table
+    c.execute('''CREATE TABLE IF NOT EXISTS blog_posts (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        content TEXT NOT NULL,
+        excerpt TEXT,
+        author TEXT DEFAULT 'Admin',
+        category TEXT DEFAULT 'General',
+        tags TEXT,
+        featured BOOLEAN DEFAULT 0,
+        published BOOLEAN DEFAULT 1,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        views INTEGER DEFAULT 0
+    )''')
+    
+
+    
+    # Settings table
+    c.execute('''CREATE TABLE IF NOT EXISTS settings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )''')
+    
+    # Create admin user
+    admin_id = str(uuid.uuid4())
+    password_hash = generate_password_hash('admin123')
+    c.execute('INSERT OR IGNORE INTO admin_users (id, username, password_hash) VALUES (?, ?, ?)',
+              (admin_id, 'admin', password_hash))
+    
+    # Insert default settings
+    default_settings = [
+        ('max_file_size', '100'),
+        ('allowed_file_types', 'PDF,DOCX,JPG,PNG,MP4,MP3,WAV,FLAC'),
+        ('image_quality', '95'),
+        ('audio_bitrate', '192')
+    ]
+    for key, value in default_settings:
+        c.execute('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)', (key, value))
+    
+    # Insert sample blog posts
+    sample_posts = [
+        {
+            'id': str(uuid.uuid4()),
+            'title': 'Welcome to FormatFusion',
+            'content': 'FormatFusion is your go-to solution for file conversions...',
+            'excerpt': 'Learn about our powerful file conversion platform',
+            'category': 'Announcements',
+            'featured': 1
+        }
+    ]
+    for post in sample_posts:
+        c.execute('INSERT OR IGNORE INTO blog_posts (id, title, content, excerpt, category, featured) VALUES (?, ?, ?, ?, ?, ?)',
+                  (post['id'], post['title'], post['content'], post['excerpt'], post['category'], post['featured']))
+    
     conn.commit()
     conn.close()
 
@@ -56,8 +152,9 @@ def upload():
             os.makedirs('uploads', exist_ok=True)
             file.save(f'uploads/{file_id}_{filename}')
             
-            c.execute('INSERT INTO files (id, filename, from_format, to_format, status) VALUES (?, ?, ?, ?, ?)', 
-                     (file_id, filename, from_format, to_format, 'pending'))
+            file_size = os.path.getsize(f'uploads/{file_id}_{filename}')
+            c.execute('INSERT INTO files (id, filename, from_format, to_format, status, file_size) VALUES (?, ?, ?, ?, ?, ?)', 
+                     (file_id, filename, from_format, to_format, 'pending', file_size))
             
             result.append({
                 'id': file_id,
@@ -351,7 +448,9 @@ def convert_file(file_id):
                 print(f'Output file size: {os.path.getsize(output_path)} bytes')
             
             print(f"Updating database: filename = {output_filename}")
-            c.execute('UPDATE files SET status = ?, filename = ? WHERE id = ?', ('completed', output_filename, file_id))
+            c.execute('UPDATE files SET status = ?, filename = ?, completion_date = CURRENT_TIMESTAMP WHERE id = ?', ('completed', output_filename, file_id))
+            
+
             
             # Verify database update
             c.execute('SELECT filename, status FROM files WHERE id = ?', (file_id,))
@@ -360,7 +459,9 @@ def convert_file(file_id):
             
         except Exception as e:
             print(f"❌ Conversion failed: {str(e)}")
-            c.execute('UPDATE files SET status = ? WHERE id = ?', ('failed', file_id))
+            c.execute('UPDATE files SET status = ?, error_message = ? WHERE id = ?', ('failed', str(e), file_id))
+            
+
     else:
         print("❌ No file found in database")
     
@@ -443,6 +544,13 @@ def download(file_id):
                 thread.daemon = True
                 thread.start()
                 
+                # Update download count
+                conn = sqlite3.connect('app.db')
+                c = conn.cursor()
+                c.execute('UPDATE files SET download_count = download_count + 1 WHERE id = ?', (file_id,))
+                conn.commit()
+                conn.close()
+                
                 response = send_file(file_path, as_attachment=True, download_name=clean_download_name)
                 response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
                 response.headers['Pragma'] = 'no-cache'
@@ -461,6 +569,250 @@ def download(file_id):
     
     print(f"=== DOWNLOAD FAILED ===\n")
     return {'error': 'File not found or not ready'}, 404
+
+@app.route('/api/admin/login', methods=['POST'])
+def admin_login():
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+    
+    conn = sqlite3.connect('app.db')
+    c = conn.cursor()
+    c.execute('SELECT * FROM admin_users WHERE username = ?', (username,))
+    admin = c.fetchone()
+    conn.close()
+    
+    if admin and check_password_hash(admin[2], password):
+        access_token = create_access_token(identity=admin[0])
+        return {'access_token': access_token, 'admin': {'username': admin[1]}}
+    else:
+        return {'error': 'Invalid credentials'}, 401
+
+@app.route('/api/admin/files')
+@jwt_required()
+def get_admin_files():
+    conn = sqlite3.connect('app.db')
+    c = conn.cursor()
+    c.execute('SELECT * FROM files ORDER BY upload_date DESC LIMIT 50')
+    files = c.fetchall()
+    conn.close()
+    
+    file_list = []
+    for file in files:
+        file_list.append({
+            'id': file[0],
+            'filename': file[1],
+            'status': file[2],
+            'originalFormat': file[3] or 'Unknown',
+            'convertedFormat': file[4] or 'Unknown',
+            'fileSize': f'{(file[5] or 0) // 1024} KB' if file[5] else 'Unknown',
+            'uploadDate': file[6] or 'Unknown',
+            'downloadCount': file[7] or 0
+        })
+    
+    return jsonify({'files': file_list})
+
+@app.route('/api/files/stats')
+def get_file_stats():
+    conn = sqlite3.connect('app.db')
+    c = conn.cursor()
+    c.execute('SELECT COUNT(*) FROM files')
+    total_files = c.fetchone()[0]
+    c.execute('SELECT COUNT(*) FROM files WHERE status = "completed"')
+    completed_files = c.fetchone()[0]
+    c.execute('SELECT SUM(download_count) FROM files')
+    total_downloads = c.fetchone()[0] or 0
+    
+    # Calculate actual storage used
+    db_storage = 0
+    file_storage = 0
+    
+    # Database size
+    try:
+        db_size = os.path.getsize('app.db')
+        db_storage = db_size / (1024 * 1024)  # Convert to MB
+    except:
+        db_storage = 0
+    
+    # File storage (uploads directory)
+    try:
+        total_size = 0
+        if os.path.exists('uploads'):
+            for dirpath, dirnames, filenames in os.walk('uploads'):
+                for filename in filenames:
+                    filepath = os.path.join(dirpath, filename)
+                    total_size += os.path.getsize(filepath)
+        file_storage = total_size / (1024 * 1024)  # Convert to MB
+    except:
+        file_storage = 0
+    
+    conn.close()
+    
+    success_rate = (completed_files / total_files * 100) if total_files > 0 else 0
+    
+    return jsonify({
+        'totalFiles': total_files,
+        'completedFiles': completed_files,
+        'totalDownloads': total_downloads,
+        'successRate': round(success_rate, 2),
+        'dbStorage': round(db_storage, 2),
+        'fileStorage': round(file_storage, 2),
+        'totalStorage': round(db_storage + file_storage, 2)
+    })
+
+@app.route('/api/files/<file_id>', methods=['DELETE'])
+@jwt_required()
+def delete_file(file_id):
+    conn = sqlite3.connect('app.db')
+    c = conn.cursor()
+    c.execute('SELECT filename FROM files WHERE id = ?', (file_id,))
+    file_record = c.fetchone()
+    
+    if file_record:
+        filename = file_record[0]
+        # Delete physical files
+        original_path = f'uploads/{file_id}_{filename}'
+        converted_path = f'uploads/{filename}'
+        
+        if os.path.exists(original_path):
+            os.remove(original_path)
+        if os.path.exists(converted_path):
+            os.remove(converted_path)
+        
+        # Delete from database
+        c.execute('DELETE FROM files WHERE id = ?', (file_id,))
+        conn.commit()
+    
+    conn.close()
+    return {'message': 'File deleted successfully'}
+
+@app.route('/api/admin/blog')
+@jwt_required()
+def get_admin_blog_posts():
+    conn = sqlite3.connect('app.db')
+    c = conn.cursor()
+    c.execute('SELECT * FROM blog_posts ORDER BY created_at DESC')
+    posts = c.fetchall()
+    conn.close()
+    
+    blog_posts = []
+    for post in posts:
+        blog_posts.append({
+            'id': post[0],
+            'title': post[1],
+            'content': post[2],
+            'excerpt': post[3],
+            'author': post[4],
+            'category': post[5],
+            'tags': post[6],
+            'featured': bool(post[7]),
+            'published': bool(post[8]),
+            'created_at': post[9],
+            'updated_at': post[10],
+            'views': post[11]
+        })
+    
+    return jsonify({'posts': blog_posts})
+
+
+
+@app.route('/api/admin/settings')
+@jwt_required()
+def get_settings():
+    conn = sqlite3.connect('app.db')
+    c = conn.cursor()
+    c.execute('SELECT key, value FROM settings')
+    settings = c.fetchall()
+    conn.close()
+    
+    settings_dict = {key: value for key, value in settings}
+    return jsonify({'settings': settings_dict})
+
+@app.route('/api/admin/settings', methods=['PUT'])
+@jwt_required()
+def update_settings():
+    data = request.get_json()
+    
+    conn = sqlite3.connect('app.db')
+    c = conn.cursor()
+    
+    for key, value in data.items():
+        c.execute('INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)',
+                  (key, str(value)))
+    
+    conn.commit()
+    conn.close()
+    
+    return {'message': 'Settings updated successfully'}
+
+@app.route('/api/admin/dashboard')
+@jwt_required()
+def get_dashboard_stats():
+    conn = sqlite3.connect('app.db')
+    c = conn.cursor()
+    
+    # Get file stats
+    c.execute('SELECT COUNT(*) FROM files')
+    total_files = c.fetchone()[0]
+    
+    c.execute('SELECT COUNT(*) FROM files WHERE status = "completed"')
+    completed_files = c.fetchone()[0]
+    
+    c.execute('SELECT SUM(download_count) FROM files')
+    total_downloads = c.fetchone()[0] or 0
+    
+    # Get today's conversions
+    c.execute('SELECT COUNT(*) FROM files WHERE date(upload_date) = date("now")')
+    today_conversions = c.fetchone()[0]
+    
+    # Get this week's conversions
+    c.execute('SELECT COUNT(*) FROM files WHERE date(upload_date) >= date("now", "-7 days")')
+    week_conversions = c.fetchone()[0]
+    
+    # Calculate actual storage used
+    db_storage = 0
+    file_storage = 0
+    
+    # Database size
+    try:
+        db_size = os.path.getsize('app.db')
+        db_storage = db_size / (1024 * 1024)  # Convert to MB
+    except:
+        db_storage = 0
+    
+    # File storage (uploads directory)
+    try:
+        total_size = 0
+        if os.path.exists('uploads'):
+            for dirpath, dirnames, filenames in os.walk('uploads'):
+                for filename in filenames:
+                    filepath = os.path.join(dirpath, filename)
+                    total_size += os.path.getsize(filepath)
+        file_storage = total_size / (1024 * 1024)  # Convert to MB
+    except:
+        file_storage = 0
+    
+    total_storage = db_storage + file_storage
+    
+    conn.close()
+    
+    success_rate = (completed_files / total_files * 100) if total_files > 0 else 0
+    
+    return jsonify({
+        'totalFiles': total_files,
+        'completedFiles': completed_files,
+        'totalDownloads': total_downloads,
+        'successRate': round(success_rate, 2),
+        'todayConversions': today_conversions,
+        'weekConversions': week_conversions,
+        'dbStorage': round(db_storage, 2),
+        'fileStorage': round(file_storage, 2),
+        'totalStorage': round(total_storage, 2)
+    })
+
+@app.route('/api/blog')
+def get_blog_posts():
+    return jsonify({'posts': []})
 
 if __name__ == '__main__':
     os.makedirs('uploads', exist_ok=True)

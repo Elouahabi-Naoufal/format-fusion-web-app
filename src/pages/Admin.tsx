@@ -1,7 +1,8 @@
 
-import React, { useState } from 'react';
-import { Link, Outlet, useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
+import { api } from '../lib/api';
 import { 
   Settings, 
   FileText, 
@@ -10,11 +11,13 @@ import {
   Upload,
   PenTool,
   Globe,
-  Database
+  Database,
+  LogOut
 } from 'lucide-react';
 
 const Admin = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const isAdminHome = location.pathname === '/admin';
 
   const menuItems = [
@@ -63,37 +66,83 @@ const Admin = () => {
     return location.pathname.startsWith(path);
   };
 
-  // Mock stats data
-  const stats = [
+  const [stats, setStats] = useState([
     {
       title: 'Total Conversions',
-      value: '12,345',
-      change: '+12%',
+      value: '0',
+      change: '+0%',
       positive: true,
       icon: Upload
     },
     {
       title: 'Active Users',
-      value: '2,856',
-      change: '+8%',
+      value: '0',
+      change: '+0%',
       positive: true,
       icon: Users
     },
     {
       title: 'Blog Posts',
-      value: '24',
-      change: '+3',
+      value: '0',
+      change: '+0',
       positive: true,
       icon: FileText
     },
     {
       title: 'Success Rate',
-      value: '98.5%',
-      change: '+0.2%',
+      value: '0%',
+      change: '+0%',
       positive: true,
       icon: BarChart3
     }
-  ];
+  ]);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const response = await api.getDashboardStats();
+        setStats([
+          {
+            title: 'Total Conversions',
+            value: response.totalFiles?.toString() || '0',
+            change: '+12%',
+            positive: true,
+            icon: Upload
+          },
+          {
+            title: 'Active Users',
+            value: '2,856',
+            change: '+8%',
+            positive: true,
+            icon: Users
+          },
+          {
+            title: 'Blog Posts',
+            value: '24',
+            change: '+3',
+            positive: true,
+            icon: FileText
+          },
+          {
+            title: 'Success Rate',
+            value: `${response.successRate || 0}%`,
+            change: '+0.2%',
+            positive: true,
+            icon: BarChart3
+          }
+        ]);
+      } catch (error) {
+        console.error('Failed to fetch dashboard stats:', error);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('admin_token');
+    navigate('/admin/login');
+  };
 
   return (
     <Layout>
@@ -105,131 +154,43 @@ const Admin = () => {
             <p className="text-gray-600">Manage your file conversion platform</p>
           </div>
 
-          {isAdminHome ? (
-            <div className="space-y-8">
-              {/* Stats Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {stats.map((stat, index) => (
-                  <div
-                    key={index}
-                    className="bg-white rounded-xl shadow-lg p-6 border border-gray-200"
-                  >
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="p-2 bg-gradient-to-r from-purple-100 to-blue-100 rounded-lg">
-                        <stat.icon className="h-6 w-6 text-purple-600" />
-                      </div>
-                      <span className={`text-sm font-medium ${
-                        stat.positive ? 'text-green-600' : 'text-red-600'
-                      }`}>
-                        {stat.change}
-                      </span>
-                    </div>
-                    <h3 className="text-2xl font-bold text-gray-900 mb-1">
-                      {stat.value}
-                    </h3>
-                    <p className="text-gray-600 text-sm">{stat.title}</p>
-                  </div>
-                ))}
-              </div>
-
-              {/* Admin Menu Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {menuItems.slice(1).map((item, index) => (
+          <div className="flex space-x-8">
+            {/* Sidebar Navigation */}
+            <div className="w-64 bg-white rounded-xl shadow-lg p-6 border border-gray-200 h-fit">
+              <nav className="space-y-2">
+                {menuItems.map((item, index) => (
                   <Link
                     key={index}
                     to={item.path}
-                    className="group bg-white rounded-xl shadow-lg p-6 border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
+                    className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors duration-200 ${
+                      isActive(item.path)
+                        ? 'bg-purple-100 text-purple-700'
+                        : 'text-gray-600 hover:bg-gray-100'
+                    }`}
                   >
-                    <div className="flex items-center space-x-4">
-                      <div className="p-3 bg-gradient-to-r from-purple-100 to-blue-100 rounded-lg group-hover:scale-110 transition-transform duration-200">
-                        <item.icon className="h-6 w-6 text-purple-600" />
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-semibold text-gray-900 group-hover:text-purple-600 transition-colors">
-                          {item.name}
-                        </h3>
-                        <p className="text-gray-600 text-sm">{item.description}</p>
-                      </div>
-                    </div>
+                    <item.icon className="h-5 w-5" />
+                    <span className="font-medium">{item.name}</span>
                   </Link>
                 ))}
-              </div>
-
-              {/* Recent Activity */}
-              <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
-                <h3 className="text-xl font-semibold text-gray-900 mb-6">Recent Activity</h3>
-                <div className="space-y-4">
-                  {[
-                    {
-                      action: 'New blog post published',
-                      details: '"Complete Guide to PDF Conversion"',
-                      time: '2 hours ago',
-                      type: 'blog'
-                    },
-                    {
-                      action: 'File conversion completed',
-                      details: 'document.pdf → document.docx',
-                      time: '3 hours ago',
-                      type: 'conversion'
-                    },
-                    {
-                      action: 'User registered',
-                      details: 'sarah.johnson@email.com',
-                      time: '5 hours ago',
-                      type: 'user'
-                    },
-                    {
-                      action: 'System maintenance',
-                      details: 'Server optimization completed',
-                      time: '1 day ago',
-                      type: 'system'
-                    }
-                  ].map((activity, index) => (
-                    <div key={index} className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
-                      <div className={`w-2 h-2 rounded-full ${
-                        activity.type === 'blog' ? 'bg-blue-500' :
-                        activity.type === 'conversion' ? 'bg-green-500' :
-                        activity.type === 'user' ? 'bg-purple-500' : 'bg-orange-500'
-                      }`}></div>
-                      <div className="flex-grow">
-                        <p className="font-medium text-gray-900">{activity.action}</p>
-                        <p className="text-sm text-gray-600">{activity.details}</p>
-                      </div>
-                      <span className="text-sm text-gray-500">{activity.time}</span>
-                    </div>
-                  ))}
-                </div>
+              </nav>
+              
+              {/* Logout Button */}
+              <div className="mt-8 pt-6 border-t border-gray-200">
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center space-x-3 px-3 py-2 rounded-lg text-red-600 hover:bg-red-50 transition-colors duration-200 w-full"
+                >
+                  <LogOut className="h-5 w-5" />
+                  <span className="font-medium">Logout</span>
+                </button>
               </div>
             </div>
-          ) : (
-            // Render child routes
-            <div className="flex space-x-8">
-              {/* Sidebar Navigation */}
-              <div className="w-64 bg-white rounded-xl shadow-lg p-6 border border-gray-200 h-fit">
-                <nav className="space-y-2">
-                  {menuItems.map((item, index) => (
-                    <Link
-                      key={index}
-                      to={item.path}
-                      className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors duration-200 ${
-                        isActive(item.path)
-                          ? 'bg-purple-100 text-purple-700'
-                          : 'text-gray-600 hover:bg-gray-100'
-                      }`}
-                    >
-                      <item.icon className="h-5 w-5" />
-                      <span className="font-medium">{item.name}</span>
-                    </Link>
-                  ))}
-                </nav>
-              </div>
 
-              {/* Main Content */}
-              <div className="flex-grow">
-                <Outlet />
-              </div>
+            {/* Main Content */}
+            <div className="flex-grow">
+              <Outlet />
             </div>
-          )}
+          </div>
         </div>
       </div>
     </Layout>

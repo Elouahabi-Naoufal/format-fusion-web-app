@@ -61,6 +61,10 @@ class ApiClient {
     return response;
   }
 
+  async adminLogin(username: string, password: string) {
+    return this.login(username, password);
+  }
+
   logout() {
     this.token = null;
     localStorage.removeItem('admin_token');
@@ -208,6 +212,12 @@ class ApiClient {
 
     return this.request(`/admin/blog?${params}`);
   }
+
+
+
+
+
+
 
   async getPageContent(page: string) {
     return this.request(`/admin/content/${page}`);

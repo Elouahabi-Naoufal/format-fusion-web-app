@@ -1,6 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, Eye, Calendar, User } from 'lucide-react';
+import { api } from '../../lib/api';
+import { useToast } from '../../hooks/use-toast';
 
 interface BlogPost {
   id: string;
@@ -31,74 +33,153 @@ const AdminBlog = () => {
   });
 
   useEffect(() => {
-    // Load posts from localStorage or use mock data
-    const savedPosts = localStorage.getItem('blog_posts');
-    if (savedPosts) {
-      setPosts(JSON.parse(savedPosts));
-    } else {
-      // Initialize with mock data
-      const mockPosts: BlogPost[] = [
-        {
-          id: '1',
-          title: 'Complete Guide to PDF Conversion',
-          excerpt: 'Learn everything you need to know about converting PDFs to and from various formats.',
-          content: 'Full content here...',
-          author: 'Sarah Johnson',
-          publishDate: '2024-01-15',
-          status: 'published',
-          category: 'Tutorials',
-          tags: ['PDF', 'Conversion', 'Documents'],
-          featured: true
-        },
-        {
-          id: '2',
-          title: 'Image Format Wars: JPEG vs PNG vs WEBP',
-          excerpt: 'Dive deep into the world of image formats and discover which format is best.',
-          content: 'Full content here...',
-          author: 'Mike Chen',
-          publishDate: '2024-01-10',
-          status: 'published',
-          category: 'Technology', 
-          tags: ['Images', 'Web', 'Performance'],
-          featured: true
+    const fetchBlogPosts = async () => {
+      try {
+        const response = await api.getAdminBlogPosts();
+        const formattedPosts = response.posts.map((post: any) => ({
+          id: post.id,
+          title: post.title,
+          excerpt: post.excerpt,
+          content: post.content,
+          author: post.author,
+          publishDate: post.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
+          status: post.published ? 'published' : 'draft',
+          category: post.category,
+          tags: post.tags ? post.tags.split(',') : [],
+          featured: post.featured
+        }));
+        setPosts(formattedPosts);
+      } catch (error) {
+        console.error('Failed to fetch blog posts:', error);
+        // Fallback to localStorage
+        const savedPosts = localStorage.getItem('blog_posts');
+        if (savedPosts) {
+          setPosts(JSON.parse(savedPosts));
+        } else {
+          // Initialize with mock data as fallback
+          const mockPosts: BlogPost[] = [
+            {
+              id: '1',
+              title: 'Complete Guide to PDF Conversion',
+              excerpt: 'Learn everything you need to know about converting PDFs to and from various formats.',
+              content: 'Full content here...',
+              author: 'Sarah Johnson',
+              publishDate: '2024-01-15',
+              status: 'published',
+              category: 'Tutorials',
+              tags: ['PDF', 'Conversion', 'Documents'],
+              featured: true
+            }
+          ];
+          setPosts(mockPosts);
+          localStorage.setItem('blog_posts', JSON.stringify(mockPosts));
         }
-      ];
-      setPosts(mockPosts);
-      localStorage.setItem('blog_posts', JSON.stringify(mockPosts));
-    }
+      }
+    };
+
+    fetchBlogPosts();
   }, []);
+
+  const { toast } = useToast();
 
   const savePosts = (updatedPosts: BlogPost[]) => {
     setPosts(updatedPosts);
     localStorage.setItem('blog_posts', JSON.stringify(updatedPosts));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (editingPost) {
-      // Update existing post
-      const updatedPosts = posts.map(post =>
-        post.id === editingPost.id
-          ? { ...post, ...formData, publishDate: post.publishDate }
-          : post
-      );
-      savePosts(updatedPosts);
-    } else {
-      // Create new post
-      const newPost: BlogPost = {
-        id: Date.now().toString(),
-        title: formData.title || '',
-        excerpt: formData.excerpt || '',
-        content: formData.content || '',
-        author: formData.author || '',
-        publishDate: new Date().toISOString().split('T')[0],
-        status: formData.status || 'draft',
-        category: formData.category || 'Tutorials',
-        tags: formData.tags || [],
-        featured: formData.featured || false
-      };
-      savePosts([...posts, newPost]);
+    try {
+      if (editingPost) {
+        // Update existing post
+        const postData = {
+          title: formData.title,
+          excerpt: formData.excerpt,
+          content: formData.content,
+          author: formData.author,
+          category: formData.category,
+          tags: formData.tags?.join(','),
+          published: formData.status === 'published',
+          featured: formData.featured
+        };
+        
+        await api.updateBlogPost(editingPost.id, postData);
+        const updatedPosts = posts.map(post =>
+          post.id === editingPost.id
+            ? { ...post, ...formData, publishDate: post.publishDate }
+            : post
+        );
+        savePosts(updatedPosts);
+        
+        toast({
+          title: "Post Updated",
+          description: "Blog post has been updated successfully.",
+        });
+      } else {
+        // Create new post
+        const postData = {
+          title: formData.title || '',
+          excerpt: formData.excerpt || '',
+          content: formData.content || '',
+          author: formData.author || '',
+          category: formData.category || 'Tutorials',
+          tags: formData.tags?.join(',') || '',
+          published: formData.status === 'published',
+          featured: formData.featured || false
+        };
+        
+        const response = await api.createBlogPost(postData);
+        const newPost: BlogPost = {
+          id: response.id || Date.now().toString(),
+          title: formData.title || '',
+          excerpt: formData.excerpt || '',
+          content: formData.content || '',
+          author: formData.author || '',
+          publishDate: new Date().toISOString().split('T')[0],
+          status: formData.status || 'draft',
+          category: formData.category || 'Tutorials',
+          tags: formData.tags || [],
+          featured: formData.featured || false
+        };
+        savePosts([...posts, newPost]);
+        
+        toast({
+          title: "Post Created",
+          description: "New blog post has been created successfully.",
+        });
+      }
+    } catch (error) {
+      console.error('Error saving post:', error);
+      toast({
+        title: "Save Failed",
+        description: "Failed to save blog post. Changes saved locally.",
+        variant: "destructive",
+      });
+      
+      // Fallback to local storage
+      if (editingPost) {
+        const updatedPosts = posts.map(post =>
+          post.id === editingPost.id
+            ? { ...post, ...formData, publishDate: post.publishDate }
+            : post
+        );
+        savePosts(updatedPosts);
+      } else {
+        const newPost: BlogPost = {
+          id: Date.now().toString(),
+          title: formData.title || '',
+          excerpt: formData.excerpt || '',
+          content: formData.content || '',
+          author: formData.author || '',
+          publishDate: new Date().toISOString().split('T')[0],
+          status: formData.status || 'draft',
+          category: formData.category || 'Tutorials',
+          tags: formData.tags || [],
+          featured: formData.featured || false
+        };
+        savePosts([...posts, newPost]);
+      }
     }
 
     closeModal();
@@ -110,10 +191,29 @@ const AdminBlog = () => {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (postId: string) => {
+  const handleDelete = async (postId: string) => {
     if (confirm('Are you sure you want to delete this post?')) {
-      const updatedPosts = posts.filter(post => post.id !== postId);
-      savePosts(updatedPosts);
+      try {
+        await api.deleteBlogPost(postId);
+        const updatedPosts = posts.filter(post => post.id !== postId);
+        savePosts(updatedPosts);
+        
+        toast({
+          title: "Post Deleted",
+          description: "Blog post has been deleted successfully.",
+        });
+      } catch (error) {
+        console.error('Error deleting post:', error);
+        toast({
+          title: "Delete Failed",
+          description: "Failed to delete post from server. Removed locally.",
+          variant: "destructive",
+        });
+        
+        // Fallback to local deletion
+        const updatedPosts = posts.filter(post => post.id !== postId);
+        savePosts(updatedPosts);
+      }
     }
   };
 

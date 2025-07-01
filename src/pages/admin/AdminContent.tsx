@@ -1,6 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { Save, Edit, Globe, FileText } from 'lucide-react';
+import { api } from '../../lib/api';
+import { useToast } from '../../hooks/use-toast';
 
 interface PageContent {
   id: string;
@@ -17,58 +19,77 @@ const AdminContent = () => {
   const [formData, setFormData] = useState({ title: '', content: '' });
 
   useEffect(() => {
-    // Load content from localStorage or use mock data
-    const savedContent = localStorage.getItem('page_content');
-    if (savedContent) {
-      setContents(JSON.parse(savedContent));
-    } else {
-      // Initialize with mock data
-      const mockContent: PageContent[] = [
-        {
-          id: '1',
-          page: 'Home',
-          section: 'Hero',
-          title: 'Convert Files Effortlessly',
-          content: 'Transform your files between 200+ formats with professional quality. Fast, secure, and completely free for everyone.',
-          lastModified: '2024-01-15T10:30:00'
-        },
-        {
-          id: '2',
-          page: 'Home',
-          section: 'Features',
-          title: 'Why Choose FormatFusion?',
-          content: 'Experience the most advanced file conversion platform with enterprise-grade security and blazing-fast processing speeds.',
-          lastModified: '2024-01-15T10:30:00'
-        },
-        {
-          id: '3',
-          page: 'Home',
-          section: 'CTA',
-          title: 'Ready to Convert Your Files?',
-          content: 'Join millions of users who trust FormatFusion for their file conversion needs.',
-          lastModified: '2024-01-15T10:30:00'
-        },
-        {
-          id: '4',
-          page: 'About',
-          section: 'Mission',
-          title: 'Our Mission',
-          content: 'We are dedicated to making file conversion simple, fast, and accessible to everyone. Our platform supports over 200 file formats and processes millions of conversions daily.',
-          lastModified: '2024-01-14T15:20:00'
-        },
-        {
-          id: '5',
-          page: 'Footer',
-          section: 'Description',
-          title: 'Company Description',
-          content: 'Convert your files effortlessly with our powerful, secure, and fast file conversion platform. Supporting hundreds of formats with professional-grade quality.',
-          lastModified: '2024-01-14T15:20:00'
+    const fetchPageContent = async () => {
+      try {
+        // Try to fetch from API for each page
+        const pages = ['home', 'about', 'footer'];
+        const contentPromises = pages.map(page => 
+          api.getPageContent(page).catch(() => null)
+        );
+        
+        const results = await Promise.all(contentPromises);
+        const apiContent = results.filter(result => result !== null);
+        
+        if (apiContent.length > 0) {
+          // Convert API response to our format
+          const formattedContent = apiContent.flatMap((pageData: any) => 
+            Object.entries(pageData.content || {}).map(([section, data]: [string, any]) => ({
+              id: `${pageData.page}-${section}`,
+              page: pageData.page.charAt(0).toUpperCase() + pageData.page.slice(1),
+              section: section.charAt(0).toUpperCase() + section.slice(1),
+              title: data.title || '',
+              content: data.content || '',
+              lastModified: data.lastModified || new Date().toISOString()
+            }))
+          );
+          setContents(formattedContent);
+        } else {
+          throw new Error('No API content available');
         }
-      ];
-      setContents(mockContent);
-      localStorage.setItem('page_content', JSON.stringify(mockContent));
-    }
+      } catch (error) {
+        console.error('Failed to fetch page content:', error);
+        // Fallback to localStorage
+        const savedContent = localStorage.getItem('page_content');
+        if (savedContent) {
+          setContents(JSON.parse(savedContent));
+        } else {
+          // Initialize with mock data as final fallback
+          const mockContent: PageContent[] = [
+            {
+              id: '1',
+              page: 'Home',
+              section: 'Hero',
+              title: 'Convert Files Effortlessly',
+              content: 'Transform your files between 200+ formats with professional quality. Fast, secure, and completely free for everyone.',
+              lastModified: '2024-01-15T10:30:00'
+            },
+            {
+              id: '2',
+              page: 'Home',
+              section: 'Features',
+              title: 'Why Choose FormatFusion?',
+              content: 'Experience the most advanced file conversion platform with enterprise-grade security and blazing-fast processing speeds.',
+              lastModified: '2024-01-15T10:30:00'
+            },
+            {
+              id: '3',
+              page: 'Home',
+              section: 'CTA',
+              title: 'Ready to Convert Your Files?',
+              content: 'Join millions of users who trust FormatFusion for their file conversion needs.',
+              lastModified: '2024-01-15T10:30:00'
+            }
+          ];
+          setContents(mockContent);
+          localStorage.setItem('page_content', JSON.stringify(mockContent));
+        }
+      }
+    };
+
+    fetchPageContent();
   }, []);
+
+  const { toast } = useToast();
 
   const saveContents = (updatedContents: PageContent[]) => {
     setContents(updatedContents);
@@ -80,19 +101,53 @@ const AdminContent = () => {
     setFormData({ title: content.title, content: content.content });
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (editingContent) {
-      const updatedContents = contents.map(content =>
-        content.id === editingContent.id
-          ? {
-              ...content,
-              title: formData.title,
-              content: formData.content,
-              lastModified: new Date().toISOString()
-            }
-          : content
-      );
-      saveContents(updatedContents);
+      try {
+        await api.updatePageContent(
+          editingContent.page.toLowerCase(),
+          formData.title,
+          formData.content
+        );
+        
+        const updatedContents = contents.map(content =>
+          content.id === editingContent.id
+            ? {
+                ...content,
+                title: formData.title,
+                content: formData.content,
+                lastModified: new Date().toISOString()
+              }
+            : content
+        );
+        saveContents(updatedContents);
+        
+        toast({
+          title: "Content Updated",
+          description: "Page content has been updated successfully.",
+        });
+      } catch (error) {
+        console.error('Error updating content:', error);
+        toast({
+          title: "Update Failed",
+          description: "Failed to update content on server. Changes saved locally.",
+          variant: "destructive",
+        });
+        
+        // Fallback to local save
+        const updatedContents = contents.map(content =>
+          content.id === editingContent.id
+            ? {
+                ...content,
+                title: formData.title,
+                content: formData.content,
+                lastModified: new Date().toISOString()
+              }
+            : content
+        );
+        saveContents(updatedContents);
+      }
+      
       setEditingContent(null);
       setFormData({ title: '', content: '' });
     }

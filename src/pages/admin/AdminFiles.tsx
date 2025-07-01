@@ -208,7 +208,7 @@ const AdminFiles = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
           <div className="flex items-center">
             <div className="p-2 bg-blue-100 rounded-lg">
@@ -253,6 +253,30 @@ const AdminFiles = () => {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Success Rate</p>
               <p className="text-2xl font-semibold text-gray-900">{stats.successRate}%</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
+          <div className="flex items-center">
+            <div className="p-2 bg-orange-100 rounded-lg">
+              <FileText className="h-6 w-6 text-orange-600" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">File Storage</p>
+              <p className="text-2xl font-semibold text-gray-900">{stats.fileStorage || 0} MB</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
+          <div className="flex items-center">
+            <div className="p-2 bg-red-100 rounded-lg">
+              <FileText className="h-6 w-6 text-red-600" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">DB Storage</p>
+              <p className="text-2xl font-semibold text-gray-900">{stats.dbStorage || 0} MB</p>
             </div>
           </div>
         </div>
