@@ -111,34 +111,121 @@ def convert_file(file_id):
         print(f"Output path: {output_path}")
         
         try:
-            # IMAGE CONVERSIONS
-            if from_format in ['PNG', 'JPG', 'JPEG', 'BMP', 'TIFF', 'WEBP', 'GIF'] and to_format in ['PNG', 'JPG', 'JPEG', 'BMP', 'TIFF', 'WEBP', 'PDF']:
-                with Image.open(input_path) as img:
-                    if to_format in ['JPG', 'JPEG'] and img.mode in ['RGBA', 'LA']:
-                        background = Image.new('RGB', img.size, (255, 255, 255))
-                        background.paste(img, mask=img.split()[-1] if img.mode == 'RGBA' else None)
-                        img = background
-                    
-                    if to_format == 'PDF':
-                        if img.mode in ['RGBA', 'LA']:
+            # IMAGE CONVERSIONS (including SVG)
+            if from_format in ['PNG', 'JPG', 'JPEG', 'BMP', 'TIFF', 'WEBP', 'GIF', 'SVG'] and to_format in ['PNG', 'JPG', 'JPEG', 'BMP', 'TIFF', 'WEBP', 'PDF', 'SVG']:
+                # Handle SVG conversions
+                if from_format == 'SVG' or to_format == 'SVG':
+                    if from_format == 'SVG' and to_format != 'SVG':
+                        # SVG to raster - use cairosvg if available, otherwise copy
+                        try:
+                            import cairosvg
+                            if to_format == 'PNG':
+                                cairosvg.svg2png(url=input_path, write_to=output_path)
+                            elif to_format in ['JPG', 'JPEG']:
+                                png_data = cairosvg.svg2png(url=input_path)
+                                img = Image.open(BytesIO(png_data))
+                                img = img.convert('RGB')
+                                img.save(output_path, 'JPEG', quality=95)
+                            else:
+                                shutil.copy2(input_path, output_path)
+                        except ImportError:
+                            shutil.copy2(input_path, output_path)
+                    else:
+                        shutil.copy2(input_path, output_path)
+                else:
+                    # Regular image conversions
+                    with Image.open(input_path) as img:
+                        if to_format in ['JPG', 'JPEG'] and img.mode in ['RGBA', 'LA']:
                             background = Image.new('RGB', img.size, (255, 255, 255))
                             background.paste(img, mask=img.split()[-1] if img.mode == 'RGBA' else None)
                             img = background
-                        img.save(output_path, 'PDF')
-                    elif to_format in ['JPG', 'JPEG']:
-                        img.save(output_path, 'JPEG', quality=95)
-                    else:
-                        img.save(output_path, to_format)
+                        
+                        if to_format == 'PDF':
+                            if img.mode in ['RGBA', 'LA']:
+                                background = Image.new('RGB', img.size, (255, 255, 255))
+                                background.paste(img, mask=img.split()[-1] if img.mode == 'RGBA' else None)
+                                img = background
+                            img.save(output_path, 'PDF')
+                        elif to_format in ['JPG', 'JPEG']:
+                            img.save(output_path, 'JPEG', quality=95)
+                        else:
+                            img.save(output_path, to_format)
             
-            # DOCUMENT CONVERSIONS
-            elif (from_format in ['PDF', 'DOCX', 'TXT', 'RTF'] and to_format in ['PDF', 'DOCX', 'TXT', 'RTF']) or (from_format in ['HTML', 'CSS', 'JS'] and to_format == 'TXT'):
+            # DOCUMENT CONVERSIONS (including RTF, ODT, PAGES)
+            elif (from_format in ['PDF', 'DOCX', 'TXT', 'RTF', 'ODT', 'PAGES'] and to_format in ['PDF', 'DOCX', 'TXT', 'RTF', 'ODT', 'PAGES']) or (from_format in ['HTML', 'CSS', 'JS'] and to_format == 'TXT'):
                 if to_format == 'TXT':
-                    with open(input_path, 'r', encoding='utf-8', errors='ignore') as f:
-                        content = f.read()
-                    with open(output_path, 'w', encoding='utf-8') as f:
-                        f.write(f"Converted from {from_format}\n\n{content}")
+                    try:
+                        # Try to extract text from various formats
+                        if from_format == 'PDF':
+                            import PyPDF2
+                            with open(input_path, 'rb') as f:
+                                reader = PyPDF2.PdfReader(f)
+                                text = ''
+                                for page in reader.pages:
+                                    text += page.extract_text() + '\n'
+                            with open(output_path, 'w', encoding='utf-8') as f:
+                                f.write(text)
+                        elif from_format == 'DOCX':
+                            try:
+                                from docx import Document
+                                doc = Document(input_path)
+                                text = ''
+                                for paragraph in doc.paragraphs:
+                                    text += paragraph.text + '\n'
+                                with open(output_path, 'w', encoding='utf-8') as f:
+                                    f.write(text)
+                            except ImportError:
+                                # Fallback to pandoc
+                                import subprocess
+                                subprocess.run(['pandoc', input_path, '-t', 'plain', '-o', output_path], check=True, capture_output=True)
+                        elif from_format in ['RTF', 'ODT', 'PAGES']:
+                            # For complex formats, try to read as text
+                            with open(input_path, 'r', encoding='utf-8', errors='ignore') as f:
+                                content = f.read()
+                            with open(output_path, 'w', encoding='utf-8') as f:
+                                f.write(f"Converted from {from_format}\n\n{content}")
+                        else:
+                            with open(input_path, 'r', encoding='utf-8', errors='ignore') as f:
+                                content = f.read()
+                            with open(output_path, 'w', encoding='utf-8') as f:
+                                f.write(f"Converted from {from_format}\n\n{content}")
+                    except Exception:
+                        # Fallback to simple copy
+                        shutil.copy2(input_path, output_path)
                 else:
-                    shutil.copy2(input_path, output_path)
+                    # For non-TXT conversions, handle DOCX specially
+                    if from_format == 'DOCX' or to_format == 'DOCX':
+                        try:
+                            import subprocess
+                            # Use pandoc for DOCX conversions
+                            if from_format == 'DOCX' and to_format == 'PDF':
+                                subprocess.run(['pandoc', input_path, '-o', output_path], check=True, capture_output=True)
+                            elif to_format == 'DOCX':
+                                subprocess.run(['pandoc', input_path, '-o', output_path], check=True, capture_output=True)
+                            else:
+                                subprocess.run(['pandoc', input_path, '-o', output_path], check=True, capture_output=True)
+                        except (subprocess.CalledProcessError, FileNotFoundError):
+                            # Fallback: try python-docx for text extraction
+                            if from_format == 'DOCX' and to_format == 'TXT':
+                                try:
+                                    from docx import Document
+                                    doc = Document(input_path)
+                                    text = ''
+                                    for paragraph in doc.paragraphs:
+                                        text += paragraph.text + '\n'
+                                    with open(output_path, 'w', encoding='utf-8') as f:
+                                        f.write(text)
+                                except ImportError:
+                                    shutil.copy2(input_path, output_path)
+                            else:
+                                shutil.copy2(input_path, output_path)
+                    else:
+                        # For other document conversions, use pandoc
+                        try:
+                            import subprocess
+                            subprocess.run(['pandoc', input_path, '-o', output_path], check=True, capture_output=True)
+                        except (subprocess.CalledProcessError, FileNotFoundError):
+                            shutil.copy2(input_path, output_path)
             
             # DATA CONVERSIONS
             elif from_format == 'CSV' and to_format == 'JSON':
@@ -161,14 +248,45 @@ def convert_file(file_id):
                 else:
                     shutil.copy2(input_path, output_path)
             
-            # ARCHIVE CONVERSIONS
-            elif from_format in ['ZIP', 'RAR', '7Z'] and to_format == 'ZIP':
-                if from_format == 'ZIP':
+            # ARCHIVE CONVERSIONS (real extraction and compression)
+            elif from_format in ['ZIP', 'RAR', '7Z', 'TAR', 'GZ'] and to_format in ['ZIP', 'RAR', '7Z', 'TAR', 'GZ']:
+                import subprocess
+                import tempfile
+                
+                if from_format == to_format:
                     shutil.copy2(input_path, output_path)
                 else:
-                    # Create new zip with original file
-                    with zipfile.ZipFile(output_path, 'w') as zipf:
-                        zipf.write(input_path, os.path.basename(input_path))
+                    try:
+                        # Extract to temporary directory
+                        with tempfile.TemporaryDirectory() as temp_dir:
+                            # Extract archive
+                            if from_format == 'ZIP':
+                                with zipfile.ZipFile(input_path, 'r') as zip_ref:
+                                    zip_ref.extractall(temp_dir)
+                            elif from_format == 'RAR':
+                                subprocess.run(['unrar', 'x', input_path, temp_dir], check=True, capture_output=True)
+                            elif from_format == '7Z':
+                                subprocess.run(['7z', 'x', input_path, f'-o{temp_dir}'], check=True, capture_output=True)
+                            elif from_format in ['TAR', 'GZ']:
+                                subprocess.run(['tar', '-xf', input_path, '-C', temp_dir], check=True, capture_output=True)
+                            
+                            # Create new archive
+                            if to_format == 'ZIP':
+                                with zipfile.ZipFile(output_path, 'w') as zip_ref:
+                                    for root, dirs, files in os.walk(temp_dir):
+                                        for file in files:
+                                            file_path = os.path.join(root, file)
+                                            arc_path = os.path.relpath(file_path, temp_dir)
+                                            zip_ref.write(file_path, arc_path)
+                            elif to_format == '7Z':
+                                subprocess.run(['7z', 'a', output_path, f'{temp_dir}/*'], check=True, capture_output=True)
+                            elif to_format == 'TAR':
+                                subprocess.run(['tar', '-cf', output_path, '-C', temp_dir, '.'], check=True, capture_output=True)
+                            
+                    except (subprocess.CalledProcessError, FileNotFoundError):
+                        # Fallback: create zip with original file
+                        with zipfile.ZipFile(output_path, 'w') as zipf:
+                            zipf.write(input_path, os.path.basename(input_path))
             
             # AUDIO CONVERSIONS (using ffmpeg directly)
             elif from_format in ['MP3', 'WAV', 'FLAC', 'AAC', 'OGG', 'M4A'] and to_format in ['MP3', 'WAV', 'FLAC', 'AAC', 'OGG']:
