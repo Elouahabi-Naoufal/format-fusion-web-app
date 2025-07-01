@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { Calendar, User, ArrowRight, Clock, Tag } from 'lucide-react';
+import { api } from '../lib/api';
 
 interface BlogPost {
   id: string;
@@ -25,8 +26,14 @@ const Blog = () => {
   const [selectedCategory, setSelectedCategory] = useState('All');
 
   useEffect(() => {
-    // Mock blog data - in real app this would come from API/CMS
-    const mockPosts: BlogPost[] = [
+    const fetchPosts = async () => {
+      try {
+        const response = await api.getBlogPosts(1, 20);
+        setPosts(response.posts);
+      } catch (error) {
+        console.error('Error fetching blog posts:', error);
+        // Fallback to mock data if API fails
+        const mockPosts: BlogPost[] = [
       {
         id: '1',
         title: 'Complete Guide to PDF Conversion: Best Practices and Tips',
@@ -366,14 +373,27 @@ Video compression is crucial for modern media distribution. Understanding these 
         image: 'photo-1460925895917-afdab827c52f',
         featured: false
       }
-    ];
+        ];
+        setPosts(mockPosts);
+      }
+    };
 
-    setPosts(mockPosts);
+    const fetchSinglePost = async () => {
+      if (id) {
+        try {
+          const post = await api.getBlogPost(id);
+          setSelectedPost(post);
+        } catch (error) {
+          console.error('Error fetching blog post:', error);
+          setSelectedPost(null);
+        }
+      }
+    };
 
-    // If viewing a specific post
     if (id) {
-      const post = mockPosts.find(p => p.id === id);
-      setSelectedPost(post || null);
+      fetchSinglePost();
+    } else {
+      fetchPosts();
     }
   }, [id]);
 

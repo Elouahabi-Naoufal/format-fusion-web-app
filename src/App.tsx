@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
 import Blog from "./pages/Blog";
 import Admin from "./pages/Admin";
+import AdminLogin from "./pages/admin/AdminLogin";
 import AdminBlog from "./pages/admin/AdminBlog";
 import AdminFiles from "./pages/admin/AdminFiles";
 import AdminContent from "./pages/admin/AdminContent";
@@ -24,6 +25,7 @@ const App = () => (
           <Route path="/" element={<Home />} />
           <Route path="/blog" element={<Blog />} />
           <Route path="/blog/:id" element={<Blog />} />
+          <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin" element={<Admin />}>
             <Route path="blog" element={<AdminBlog />} />
             <Route path="files" element={<AdminFiles />} />

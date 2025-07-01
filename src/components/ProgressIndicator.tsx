@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import DownloadButton from './DownloadButton';
 
 interface ConversionProgress {
   id: string;
@@ -81,9 +82,18 @@ const ProgressIndicator = ({ conversions }: ProgressIndicatorProps) => {
                 </div>
               </div>
               
-              <span className={`text-sm font-medium ${getStatusColor(conversion.status)} capitalize`}>
-                {conversion.status}
-              </span>
+              <div className="flex items-center space-x-2">
+                <span className={`text-sm font-medium ${getStatusColor(conversion.status)} capitalize`}>
+                  {conversion.status}
+                </span>
+                {conversion.status === 'completed' && (
+                  <DownloadButton 
+                    fileId={conversion.id}
+                    fileName={conversion.fileName}
+                    status={conversion.status}
+                  />
+                )}
+              </div>
             </div>
 
             {/* Progress Bar */}
@@ -98,12 +108,6 @@ const ProgressIndicator = ({ conversions }: ProgressIndicatorProps) => {
               <span className="text-xs text-gray-500">
                 {conversion.progress}% complete
               </span>
-              
-              {conversion.status === 'completed' && (
-                <button className="text-xs text-blue-600 hover:text-blue-800 font-medium">
-                  Download
-                </button>
-              )}
             </div>
           </div>
         ))}

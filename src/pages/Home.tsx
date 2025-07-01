@@ -5,6 +5,8 @@ import FileUpload from '../components/FileUpload';
 import FormatSelector from '../components/FormatSelector';
 import ProgressIndicator from '../components/ProgressIndicator';
 import { Zap, Shield, Globe, Clock } from 'lucide-react';
+import { api } from '../lib/api';
+import { useToast } from '../hooks/use-toast';
 
 interface ConversionProgress {
   id: string;
@@ -19,63 +21,95 @@ interface ConversionProgress {
 const Home = () => {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [conversions, setConversions] = useState<ConversionProgress[]>([]);
+  const [isConverting, setIsConverting] = useState(false);
+  const { toast } = useToast();
 
   const handleFileSelect = (files: File[]) => {
     setSelectedFiles(files);
   };
 
-  const handleFormatSelect = (fromFormat: string, toFormat: string) => {
-    // Simulate conversion process for demo
-    const newConversions: ConversionProgress[] = selectedFiles.map((file, index) => ({
-      id: `conversion-${Date.now()}-${index}`,
-      fileName: file.name,
-      fromFormat,
-      toFormat,
-      progress: 0,
-      status: 'pending' as const,
-      fileSize: formatFileSize(file.size)
-    }));
-
-    setConversions(newConversions);
-
-    // Simulate conversion progress
-    newConversions.forEach((conversion, index) => {
-      setTimeout(() => {
+  const handleFormatSelect = async (fromFormat: string, toFormat: string) => {
+    if (selectedFiles.length === 0) return;
+    
+    setIsConverting(true);
+    
+    try {
+      // Upload files
+      const uploadResponse = await api.uploadFiles(selectedFiles, fromFormat, toFormat);
+      const uploadedFiles = uploadResponse.files;
+      
+      // Initialize conversion progress
+      const newConversions: ConversionProgress[] = uploadedFiles.map((file: any) => ({
+        id: file.id,
+        fileName: file.filename,
+        fromFormat: file.originalFormat,
+        toFormat: file.convertedFormat,
+        progress: 0,
+        status: 'pending' as const,
+        fileSize: file.fileSize
+      }));
+      
+      setConversions(newConversions);
+      
+      // Start conversion
+      const fileIds = uploadedFiles.map((file: any) => file.id);
+      await api.startConversion(fileIds);
+      
+      // Poll for progress updates
+      fileIds.forEach((fileId: string) => {
+        pollConversionProgress(fileId);
+      });
+      
+      toast({
+        title: "Conversion Started",
+        description: `Converting ${selectedFiles.length} file(s)...`,
+      });
+      
+    } catch (error) {
+      console.error('Conversion error:', error);
+      toast({
+        title: "Conversion Failed",
+        description: error instanceof Error ? error.message : "An error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setIsConverting(false);
+    }
+  };
+  
+  const pollConversionProgress = async (fileId: string) => {
+    const pollInterval = setInterval(async () => {
+      try {
+        const progress = await api.getConversionProgress(fileId);
+        
         setConversions(current => 
           current.map(c => 
-            c.id === conversion.id 
-              ? { ...c, status: 'converting' as const }
+            c.id === fileId 
+              ? { 
+                  ...c, 
+                  progress: progress.progress,
+                  status: progress.status as 'pending' | 'converting' | 'completed' | 'error'
+                }
               : c
           )
         );
-
-        // Simulate progress updates
-        let progress = 0;
-        const progressInterval = setInterval(() => {
-          progress += Math.random() * 25;
-          if (progress >= 100) {
-            progress = 100;
-            clearInterval(progressInterval);
-            
-            setConversions(current => 
-              current.map(c => 
-                c.id === conversion.id 
-                  ? { ...c, progress: 100, status: 'completed' as const }
-                  : c
-              )
-            );
-          } else {
-            setConversions(current => 
-              current.map(c => 
-                c.id === conversion.id 
-                  ? { ...c, progress: Math.floor(progress) }
-                  : c
-              )
-            );
+        
+        if (progress.status === 'completed' || progress.status === 'failed') {
+          clearInterval(pollInterval);
+          
+          if (progress.status === 'completed') {
+            toast({
+              title: "Conversion Complete",
+              description: `${progress.fileName} converted successfully!`,
+            });
           }
-        }, 500);
-      }, index * 1000);
-    });
+        }
+        
+      } catch (error) {
+        console.error('Progress polling error:', error);
+        clearInterval(pollInterval);
+      }
+    }, 1000);
   };
 
   const formatFileSize = (bytes: number) => {
@@ -156,11 +190,23 @@ const Home = () => {
               />
 
               {selectedFiles.length > 0 && (
-                <FormatSelector onFormatSelect={handleFormatSelect} />
+                <FormatSelector 
+                  onFormatSelect={handleFormatSelect} 
+                  selectedFiles={selectedFiles}
+                />
               )}
 
               {conversions.length > 0 && (
-                <ProgressIndicator conversions={conversions} />
+                <div className="space-y-4">
+                  <ProgressIndicator conversions={conversions} />
+                  
+                  {conversions.some(c => c.status === 'completed') && (
+                    <div className="text-center">
+                      <p className="text-green-600 font-medium mb-2">✓ Conversion Complete!</p>
+                      <p className="text-sm text-gray-600">Your files are ready for download</p>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </div>

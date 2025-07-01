@@ -42,6 +42,11 @@ const FileUpload = ({ onFileSelect, acceptedFormats = [], maxFiles = 5 }: FileUp
     onFileSelect(newFiles);
   };
 
+  const detectFileFormat = (filename: string) => {
+    const ext = filename.split('.').pop()?.toUpperCase();
+    return ext || 'UNKNOWN';
+  };
+
   const removeFile = (index: number) => {
     const newFiles = uploadedFiles.filter((_, i) => i !== index);
     setUploadedFiles(newFiles);
@@ -98,6 +103,10 @@ const FileUpload = ({ onFileSelect, acceptedFormats = [], maxFiles = 5 }: FileUp
               <Upload className="h-5 w-5 mr-2" />
               Choose Files
             </button>
+            
+            <p className="text-xs text-gray-400 mt-2">
+              Supported: Images, Documents, Audio, Video, Archives
+            </p>
           </div>
           
           <p className="text-sm text-gray-500">
@@ -125,7 +134,7 @@ const FileUpload = ({ onFileSelect, acceptedFormats = [], maxFiles = 5 }: FileUp
                     {file.name}
                   </p>
                   <p className="text-sm text-gray-500">
-                    {formatFileSize(file.size)}
+                    {detectFileFormat(file.name)} • {formatFileSize(file.size)}
                   </p>
                 </div>
               </div>

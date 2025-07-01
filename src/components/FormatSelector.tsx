@@ -4,11 +4,25 @@ import { FileText, Image, Music, Video, Archive, Code } from 'lucide-react';
 
 interface FormatSelectorProps {
   onFormatSelect: (from: string, to: string) => void;
+  selectedFiles?: File[];
 }
 
-const FormatSelector = ({ onFormatSelect }: FormatSelectorProps) => {
+const FormatSelector = ({ onFormatSelect, selectedFiles = [] }: FormatSelectorProps) => {
   const [fromFormat, setFromFormat] = useState('');
   const [toFormat, setToFormat] = useState('');
+  
+  const detectFileFormat = (filename: string) => {
+    const ext = filename.split('.').pop()?.toUpperCase();
+    return ext || 'UNKNOWN';
+  };
+  
+  const autoDetectedFormat = selectedFiles.length > 0 ? detectFileFormat(selectedFiles[0].name) : '';
+  
+  React.useEffect(() => {
+    if (autoDetectedFormat && !fromFormat) {
+      setFromFormat(autoDetectedFormat);
+    }
+  }, [autoDetectedFormat, fromFormat]);
 
   const formatCategories = [
     {
@@ -64,7 +78,7 @@ const FormatSelector = ({ onFormatSelect }: FormatSelectorProps) => {
   return (
     <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
       <h3 className="text-xl font-semibold text-gray-900 mb-6 text-center">
-        Choose Conversion Format
+        Choose Target Format
       </h3>
 
       {/* Format Categories */}
@@ -85,9 +99,9 @@ const FormatSelector = ({ onFormatSelect }: FormatSelectorProps) => {
               {category.formats.map((format) => (
                 <button
                   key={format}
-                  onClick={() => setFromFormat(format)}
+                  onClick={() => setToFormat(format)}
                   className={`px-2 py-1 text-xs font-medium rounded transition-all duration-200 ${
-                    fromFormat === format
+                    toFormat === format
                       ? 'bg-white text-gray-900 shadow-sm'
                       : 'bg-white/50 text-gray-700 hover:bg-white hover:shadow-sm'
                   }`}
@@ -104,15 +118,22 @@ const FormatSelector = ({ onFormatSelect }: FormatSelectorProps) => {
       <div className="bg-gray-50 rounded-lg p-6">
         <div className="flex items-center justify-center space-x-4 mb-6">
           <div className="text-center">
-            <label className="block text-sm font-medium text-gray-700 mb-2">From</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              From {autoDetectedFormat && <span className="text-blue-600">(Auto-detected)</span>}
+            </label>
             <select
               value={fromFormat}
               onChange={(e) => setFromFormat(e.target.value)}
               className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
             >
               <option value="">Select format</option>
+              {autoDetectedFormat && (
+                <option value={autoDetectedFormat} className="bg-blue-50 font-medium">
+                  {autoDetectedFormat} (Auto-detected)
+                </option>
+              )}
               {formatCategories.flatMap(cat => 
-                cat.formats.map(format => (
+                cat.formats.filter(format => format !== autoDetectedFormat).map(format => (
                   <option key={format} value={format}>{format}</option>
                 ))
               )}
@@ -147,7 +168,7 @@ const FormatSelector = ({ onFormatSelect }: FormatSelectorProps) => {
             disabled={!fromFormat || !toFormat}
             className="inline-flex items-center px-8 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-medium rounded-lg hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105 disabled:hover:scale-100"
           >
-            Start Conversion
+            {!fromFormat || !toFormat ? 'Select Formats' : 'Start Conversion'}
           </button>
         </div>
       </div>

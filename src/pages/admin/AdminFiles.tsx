@@ -1,6 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { Download, Trash2, Eye, Calendar, FileText, Filter } from 'lucide-react';
+import { api } from '../../lib/api';
+import { useToast } from '../../hooks/use-toast';
 
 interface FileRecord {
   id: string;
@@ -18,14 +20,28 @@ const AdminFiles = () => {
   const [files, setFiles] = useState<FileRecord[]>([]);
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    totalFiles: 0,
+    completedFiles: 0,
+    totalDownloads: 0,
+    successRate: 0
+  });
+  const { toast } = useToast();
 
   useEffect(() => {
-    // Load files from localStorage or use mock data
-    const savedFiles = localStorage.getItem('conversion_files');
-    if (savedFiles) {
-      setFiles(JSON.parse(savedFiles));
-    } else {
-      // Initialize with mock data
+    fetchFiles();
+    fetchStats();
+  }, [filterStatus, searchTerm]);
+
+  const fetchFiles = async () => {
+    try {
+      setLoading(true);
+      const response = await api.getAdminFiles(1, 50, filterStatus === 'all' ? undefined : filterStatus, searchTerm || undefined);
+      setFiles(response.files);
+    } catch (error) {
+      console.error('Error fetching files:', error);
+      // Fallback to mock data
       const mockFiles: FileRecord[] = [
         {
           id: '1',
@@ -95,9 +111,19 @@ const AdminFiles = () => {
         }
       ];
       setFiles(mockFiles);
-      localStorage.setItem('conversion_files', JSON.stringify(mockFiles));
+    } finally {
+      setLoading(false);
     }
-  }, []);
+  };
+
+  const fetchStats = async () => {
+    try {
+      const response = await api.getFileStats();
+      setStats(response);
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    }
+  };
 
   const filteredFiles = files.filter(file => {
     const matchesStatus = filterStatus === 'all' || file.status === filterStatus;
@@ -106,11 +132,45 @@ const AdminFiles = () => {
     return matchesStatus && matchesSearch;
   });
 
-  const handleDelete = (fileId: string) => {
+  const handleDelete = async (fileId: string) => {
     if (confirm('Are you sure you want to delete this file record?')) {
-      const updatedFiles = files.filter(file => file.id !== fileId);
-      setFiles(updatedFiles);
-      localStorage.setItem('conversion_files', JSON.stringify(updatedFiles));
+      try {
+        await api.deleteFile(fileId);
+        setFiles(files.filter(file => file.id !== fileId));
+        toast({
+          title: "File Deleted",
+          description: "File record has been deleted successfully.",
+        });
+        fetchStats(); // Refresh stats
+      } catch (error) {
+        console.error('Error deleting file:', error);
+        toast({
+          title: "Delete Failed",
+          description: "Failed to delete file record.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  const handleDownload = async (fileId: string, fileName: string) => {
+    try {
+      const blob = await api.downloadFile(fileId);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Error downloading file:', error);
+      toast({
+        title: "Download Failed",
+        description: "Failed to download file.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -137,10 +197,7 @@ const AdminFiles = () => {
     });
   };
 
-  const totalFiles = files.length;
-  const completedFiles = files.filter(f => f.status === 'completed').length;
-  const totalDownloads = files.reduce((sum, f) => sum + f.downloadCount, 0);
-  const successRate = totalFiles > 0 ? Math.round((completedFiles / totalFiles) * 100) : 0;
+
 
   return (
     <div className="space-y-6">
@@ -159,7 +216,7 @@ const AdminFiles = () => {
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Total Files</p>
-              <p className="text-2xl font-semibold text-gray-900">{totalFiles}</p>
+              <p className="text-2xl font-semibold text-gray-900">{stats.totalFiles}</p>
             </div>
           </div>
         </div>
@@ -171,7 +228,7 @@ const AdminFiles = () => {
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Completed</p>
-              <p className="text-2xl font-semibold text-gray-900">{completedFiles}</p>
+              <p className="text-2xl font-semibold text-gray-900">{stats.completedFiles}</p>
             </div>
           </div>
         </div>
@@ -183,7 +240,7 @@ const AdminFiles = () => {
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Downloads</p>
-              <p className="text-2xl font-semibold text-gray-900">{totalDownloads}</p>
+              <p className="text-2xl font-semibold text-gray-900">{stats.totalDownloads}</p>
             </div>
           </div>
         </div>
@@ -195,7 +252,7 @@ const AdminFiles = () => {
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Success Rate</p>
-              <p className="text-2xl font-semibold text-gray-900">{successRate}%</p>
+              <p className="text-2xl font-semibold text-gray-900">{stats.successRate}%</p>
             </div>
           </div>
         </div>
@@ -301,6 +358,7 @@ const AdminFiles = () => {
                       </button>
                       {file.status === 'completed' && (
                         <button
+                          onClick={() => handleDownload(file.id, file.fileName)}
                           className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
                           title="Download"
                         >
