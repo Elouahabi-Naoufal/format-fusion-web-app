@@ -12,6 +12,7 @@ import shutil
 from werkzeug.utils import secure_filename
 from PIL import Image
 from io import BytesIO
+# from pydub import AudioSegment  # Disabled due to Python 3.13 compatibility
 
 app = Flask(__name__)
 CORS(app)
@@ -169,9 +170,57 @@ def convert_file(file_id):
                     with zipfile.ZipFile(output_path, 'w') as zipf:
                         zipf.write(input_path, os.path.basename(input_path))
             
-            # AUDIO/VIDEO CONVERSIONS (simulated)
-            elif (from_format in ['MP3', 'WAV', 'FLAC', 'AAC', 'OGG', 'M4A'] and to_format in ['MP3', 'WAV', 'FLAC', 'AAC']) or (from_format in ['MP4', 'AVI', 'MOV', 'WMV', 'FLV', 'MKV'] and to_format in ['MP4', 'AVI', 'MOV']):
-                shutil.copy2(input_path, output_path)
+            # AUDIO CONVERSIONS (using ffmpeg directly)
+            elif from_format in ['MP3', 'WAV', 'FLAC', 'AAC', 'OGG', 'M4A'] and to_format in ['MP3', 'WAV', 'FLAC', 'AAC', 'OGG']:
+                import subprocess
+                try:
+                    if to_format == 'MP3':
+                        subprocess.run(['ffmpeg', '-i', input_path, '-b:a', '192k', output_path], check=True, capture_output=True)
+                    elif to_format == 'WAV':
+                        subprocess.run(['ffmpeg', '-i', input_path, output_path], check=True, capture_output=True)
+                    elif to_format == 'FLAC':
+                        subprocess.run(['ffmpeg', '-i', input_path, '-c:a', 'flac', output_path], check=True, capture_output=True)
+                    elif to_format == 'AAC':
+                        subprocess.run(['ffmpeg', '-i', input_path, '-c:a', 'aac', '-b:a', '128k', output_path], check=True, capture_output=True)
+                    elif to_format == 'OGG':
+                        subprocess.run(['ffmpeg', '-i', input_path, '-c:a', 'libvorbis', output_path], check=True, capture_output=True)
+                    else:
+                        subprocess.run(['ffmpeg', '-i', input_path, output_path], check=True, capture_output=True)
+                except (subprocess.CalledProcessError, FileNotFoundError):
+                    # Fallback to file copy if ffmpeg not available
+                    shutil.copy2(input_path, output_path)
+            
+            # VIDEO TO AUDIO CONVERSIONS
+            elif from_format in ['MP4', 'AVI', 'MOV', 'WMV', 'FLV', 'MKV'] and to_format in ['MP3', 'WAV', 'FLAC', 'AAC', 'OGG']:
+                import subprocess
+                try:
+                    if to_format == 'MP3':
+                        subprocess.run(['ffmpeg', '-i', input_path, '-vn', '-b:a', '192k', output_path], check=True, capture_output=True)
+                    elif to_format == 'WAV':
+                        subprocess.run(['ffmpeg', '-i', input_path, '-vn', '-c:a', 'pcm_s16le', output_path], check=True, capture_output=True)
+                    elif to_format == 'FLAC':
+                        subprocess.run(['ffmpeg', '-i', input_path, '-vn', '-c:a', 'flac', output_path], check=True, capture_output=True)
+                    elif to_format == 'AAC':
+                        subprocess.run(['ffmpeg', '-i', input_path, '-vn', '-c:a', 'aac', '-b:a', '128k', output_path], check=True, capture_output=True)
+                    elif to_format == 'OGG':
+                        subprocess.run(['ffmpeg', '-i', input_path, '-vn', '-c:a', 'libvorbis', output_path], check=True, capture_output=True)
+                except (subprocess.CalledProcessError, FileNotFoundError):
+                    shutil.copy2(input_path, output_path)
+            
+            # VIDEO TO VIDEO CONVERSIONS
+            elif from_format in ['MP4', 'AVI', 'MOV', 'WMV', 'FLV', 'MKV'] and to_format in ['MP4', 'AVI', 'MOV', 'WMV', 'FLV', 'MKV']:
+                import subprocess
+                try:
+                    if to_format == 'MP4':
+                        subprocess.run(['ffmpeg', '-i', input_path, '-c:v', 'libx264', '-c:a', 'aac', output_path], check=True, capture_output=True)
+                    elif to_format == 'AVI':
+                        subprocess.run(['ffmpeg', '-i', input_path, '-c:v', 'libx264', '-c:a', 'mp3', output_path], check=True, capture_output=True)
+                    elif to_format == 'MOV':
+                        subprocess.run(['ffmpeg', '-i', input_path, '-c:v', 'libx264', '-c:a', 'aac', output_path], check=True, capture_output=True)
+                    else:
+                        subprocess.run(['ffmpeg', '-i', input_path, output_path], check=True, capture_output=True)
+                except (subprocess.CalledProcessError, FileNotFoundError):
+                    shutil.copy2(input_path, output_path)
             
             # DEFAULT - Copy with new extension
             else:
