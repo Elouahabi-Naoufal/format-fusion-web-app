@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { TrendingUp, Users, FileText, Upload, Activity, Zap, Globe, Shield, Clock, ArrowUpRight, BarChart3, DollarSign } from 'lucide-react';
 import { api } from '../../lib/api';
+import { useTheme } from '../../hooks/useTheme';
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState({
@@ -34,8 +35,10 @@ const AdminDashboard = () => {
     fetchData();
   }, []);
 
-  const StatCard = ({ title, value, change, icon: Icon, trend, color, prefix = '', suffix = '' }) => (
-    <div className={`relative overflow-hidden bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-lg transition-all duration-300 group`}>
+  const StatCard = ({ title, value, change, icon: Icon, trend, color, prefix = '', suffix = '', isDark }) => (
+    <div className={`relative overflow-hidden rounded-2xl p-6 shadow-sm border hover:shadow-lg transition-all duration-300 group ${
+      isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'
+    }`}>
       <div className={`absolute top-0 right-0 w-32 h-32 ${color} opacity-5 rounded-full -mr-16 -mt-16 group-hover:opacity-10 transition-opacity`} />
       <div className="relative">
         <div className="flex items-center justify-between mb-4">
@@ -43,16 +46,16 @@ const AdminDashboard = () => {
             <Icon className={`h-6 w-6 ${color.replace('bg-', 'text-')}`} />
           </div>
           <div className={`flex items-center text-sm font-medium ${
-            trend === 'up' ? 'text-emerald-600' : trend === 'down' ? 'text-red-500' : 'text-gray-500'
+            trend === 'up' ? 'text-emerald-600' : trend === 'down' ? 'text-red-500' : isDark ? 'text-gray-400' : 'text-gray-500'
           }`}>
             <ArrowUpRight className={`h-4 w-4 mr-1 ${trend === 'down' ? 'rotate-90' : ''}`} />
             {change}
           </div>
         </div>
-        <div className="text-3xl font-bold text-gray-900 mb-1">
+        <div className={`text-3xl font-bold mb-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>
           {prefix}{typeof value === 'number' ? value.toLocaleString() : value}{suffix}
         </div>
-        <div className="text-gray-600 text-sm font-medium">{title}</div>
+        <div className={`text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{title}</div>
       </div>
     </div>
   );
@@ -69,21 +72,23 @@ const AdminDashboard = () => {
     return <Icon className="h-4 w-4" />;
   };
 
+  const { isDark } = useTheme('admin-theme');
+
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className={`min-h-screen p-6 ${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}>
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">Dashboard</h1>
-            <p className="text-gray-600 text-lg">Welcome back! Here's what's happening today.</p>
+            <h1 className={`text-4xl font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>Dashboard</h1>
+            <p className={`text-lg ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Welcome back! Here's what's happening today.</p>
           </div>
           <div className="flex items-center space-x-3">
-            <div className="flex items-center space-x-2 bg-emerald-50 px-4 py-2 rounded-full">
+            <div className={`flex items-center space-x-2 px-4 py-2 rounded-full ${isDark ? 'bg-emerald-900/30' : 'bg-emerald-50'}`}>
               <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-              <span className="text-emerald-700 font-medium text-sm">All Systems Operational</span>
+              <span className={`font-medium text-sm ${isDark ? 'text-emerald-400' : 'text-emerald-700'}`}>All Systems Operational</span>
             </div>
-            <div className="text-gray-500 text-sm">
+            <div className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
               Last updated: {new Date().toLocaleTimeString()}
             </div>
           </div>
@@ -98,6 +103,7 @@ const AdminDashboard = () => {
             icon={Upload}
             trend="up"
             color="bg-blue-500"
+            isDark={isDark}
           />
           <StatCard
             title="Active Users"
@@ -106,6 +112,7 @@ const AdminDashboard = () => {
             icon={Users}
             trend="up"
             color="bg-emerald-500"
+            isDark={isDark}
           />
           <StatCard
             title="Monthly Revenue"
@@ -115,6 +122,7 @@ const AdminDashboard = () => {
             trend="up"
             color="bg-purple-500"
             prefix="$"
+            isDark={isDark}
           />
           <StatCard
             title="Success Rate"
@@ -124,22 +132,25 @@ const AdminDashboard = () => {
             trend="up"
             color="bg-orange-500"
             suffix="%"
+            isDark={isDark}
           />
         </div>
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Performance Chart */}
-          <div className="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <div className={`lg:col-span-2 rounded-2xl p-6 shadow-sm border ${
+            isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'
+          }`}>
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h3 className="text-xl font-bold text-gray-900">Performance Overview</h3>
-                <p className="text-gray-600 text-sm">Conversion trends over time</p>
+                <h3 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Performance Overview</h3>
+                <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Conversion trends over time</p>
               </div>
               <div className="flex space-x-2">
                 {['7D', '30D', '90D'].map((period, i) => (
                   <button key={period} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                    i === 0 ? 'bg-blue-500 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'
+                    i === 0 ? 'bg-blue-500 text-white shadow-sm' : isDark ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-600 hover:bg-gray-100'
                   }`}>
                     {period}
                   </button>
@@ -152,7 +163,7 @@ const AdminDashboard = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <div className="w-3 h-3 bg-blue-500 rounded-full" />
-                  <span className="text-gray-700 font-medium">Daily Conversions</span>
+                  <span className={`font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Daily Conversions</span>
                 </div>
                 <span className="text-blue-600 font-semibold">+15.3% vs last week</span>
               </div>
@@ -165,7 +176,7 @@ const AdminDashboard = () => {
                       style={{ height: `${(value / 100) * 200}px` }}
                       title={`${value} conversions`}
                     />
-                    <span className="text-xs text-gray-500 mt-2">{i + 1}</span>
+                    <span className={`text-xs mt-2 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{i + 1}</span>
                   </div>
                 ))}
               </div>
@@ -173,18 +184,22 @@ const AdminDashboard = () => {
           </div>
 
           {/* Activity Feed */}
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <div className={`rounded-2xl p-6 shadow-sm border ${
+            isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'
+          }`}>
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h3 className="text-xl font-bold text-gray-900">Live Activity</h3>
-                <p className="text-gray-600 text-sm">Real-time system events</p>
+                <h3 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Live Activity</h3>
+                <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Real-time system events</p>
               </div>
-              <Activity className="h-5 w-5 text-gray-400" />
+              <Activity className={`h-5 w-5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
             </div>
             
             <div className="space-y-4">
               {activities.map((activity) => (
-                <div key={activity.id} className="flex items-start space-x-3 p-3 rounded-xl hover:bg-gray-50 transition-colors">
+                <div key={activity.id} className={`flex items-start space-x-3 p-3 rounded-xl transition-colors ${
+                  isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-50'
+                }`}>
                   <div className={`p-2 rounded-lg ${
                     activity.status === 'success' ? 'bg-emerald-100 text-emerald-600' :
                     activity.status === 'error' ? 'bg-red-100 text-red-600' :
@@ -194,22 +209,26 @@ const AdminDashboard = () => {
                     <ActivityIcon type={activity.type} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-gray-900 font-medium text-sm">{activity.message}</p>
-                    <p className="text-gray-500 text-xs mt-1">{activity.user} • {activity.time}</p>
+                    <p className={`font-medium text-sm ${isDark ? 'text-white' : 'text-gray-900'}`}>{activity.message}</p>
+                    <p className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{activity.user} • {activity.time}</p>
                   </div>
                 </div>
               ))}
             </div>
             
-            <button className="w-full mt-4 text-blue-600 hover:text-blue-700 font-medium text-sm py-2 hover:bg-blue-50 rounded-lg transition-colors">
+            <button className={`w-full mt-4 font-medium text-sm py-2 rounded-lg transition-colors ${
+              isDark ? 'text-blue-400 hover:text-blue-300 hover:bg-blue-900/20' : 'text-blue-600 hover:text-blue-700 hover:bg-blue-50'
+            }`}>
               View All Activity →
             </button>
           </div>
         </div>
 
         {/* Quick Actions */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <h3 className="text-xl font-bold text-gray-900 mb-6">Quick Actions</h3>
+        <div className={`rounded-2xl p-6 shadow-sm border ${
+          isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'
+        }`}>
+          <h3 className={`text-xl font-bold mb-6 ${isDark ? 'text-white' : 'text-gray-900'}`}>Quick Actions</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {[
               { icon: FileText, label: 'Create Blog Post', desc: 'Write new content', color: 'bg-blue-500' },
@@ -217,12 +236,14 @@ const AdminDashboard = () => {
               { icon: Users, label: 'User Management', desc: 'Manage user accounts', color: 'bg-purple-500' },
               { icon: BarChart3, label: 'Analytics Report', desc: 'Generate insights', color: 'bg-orange-500' }
             ].map((action, i) => (
-              <button key={i} className="group text-left p-4 rounded-xl border border-gray-200 hover:border-gray-300 hover:shadow-md transition-all duration-300">
+              <button key={i} className={`group text-left p-4 rounded-xl border hover:shadow-md transition-all duration-300 ${
+                isDark ? 'border-gray-600 hover:border-gray-500 hover:bg-gray-700' : 'border-gray-200 hover:border-gray-300'
+              }`}>
                 <div className={`inline-flex p-3 rounded-lg ${action.color} bg-opacity-10 mb-3 group-hover:bg-opacity-20 transition-colors`}>
                   <action.icon className={`h-6 w-6 ${action.color.replace('bg-', 'text-')}`} />
                 </div>
-                <div className="font-semibold text-gray-900 mb-1">{action.label}</div>
-                <div className="text-gray-600 text-sm">{action.desc}</div>
+                <div className={`font-semibold mb-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>{action.label}</div>
+                <div className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{action.desc}</div>
               </button>
             ))}
           </div>
