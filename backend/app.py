@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required
+from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 import os
 import uuid
@@ -21,7 +22,10 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'dev-secret-key'
 app.config['JWT_SECRET_KEY'] = 'jwt-secret-key'
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=24)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+db = SQLAlchemy(app)
 jwt = JWTManager(app)
 CORS(app, origins="*", methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"], allow_headers=["*"])
 
@@ -121,6 +125,10 @@ def init_db():
     for post in sample_posts:
         c.execute('INSERT OR IGNORE INTO blog_posts (id, title, content, excerpt, category, featured) VALUES (?, ?, ?, ?, ?, ?)',
                   (post['id'], post['title'], post['content'], post['excerpt'], post['category'], post['featured']))
+    
+
+    
+
     
     conn.commit()
     conn.close()
@@ -813,6 +821,8 @@ def get_dashboard_stats():
 @app.route('/api/blog')
 def get_blog_posts():
     return jsonify({'posts': []})
+
+
 
 if __name__ == '__main__':
     os.makedirs('uploads', exist_ok=True)

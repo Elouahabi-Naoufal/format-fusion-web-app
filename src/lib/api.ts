@@ -223,10 +223,21 @@ class ApiClient {
     return this.request(`/admin/content/${page}`);
   }
 
-  async updatePageContent(page: string, title: string, content: string) {
-    return this.request(`/admin/content/${page}`, {
+  async updatePageContent(id: string, data: { title: string; content: string; type: string }) {
+    return this.request(`/admin/content/${id}`, {
       method: 'PUT',
-      body: JSON.stringify({ title, content }),
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getAdminSettings() {
+    return this.request('/admin/settings');
+  }
+
+  async updateAdminSettings(settings: any) {
+    return this.request('/admin/settings', {
+      method: 'PUT',
+      body: JSON.stringify(settings),
     });
   }
 

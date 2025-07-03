@@ -200,106 +200,58 @@ const AdminFiles = () => {
 
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900">File Management</h2>
-        <p className="text-gray-600">View and manage uploaded files and conversion history</p>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
-          <div className="flex items-center">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <FileText className="h-6 w-6 text-blue-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Total Files</p>
-              <p className="text-2xl font-semibold text-gray-900">{stats.totalFiles}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
-          <div className="flex items-center">
-            <div className="p-2 bg-green-100 rounded-lg">
-              <FileText className="h-6 w-6 text-green-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Completed</p>
-              <p className="text-2xl font-semibold text-gray-900">{stats.completedFiles}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
-          <div className="flex items-center">
-            <div className="p-2 bg-purple-100 rounded-lg">
-              <Download className="h-6 w-6 text-purple-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Downloads</p>
-              <p className="text-2xl font-semibold text-gray-900">{stats.totalDownloads}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
-          <div className="flex items-center">
-            <div className="p-2 bg-yellow-100 rounded-lg">
-              <FileText className="h-6 w-6 text-yellow-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Success Rate</p>
-              <p className="text-2xl font-semibold text-gray-900">{stats.successRate}%</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
-          <div className="flex items-center">
-            <div className="p-2 bg-orange-100 rounded-lg">
-              <FileText className="h-6 w-6 text-orange-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">File Storage</p>
-              <p className="text-2xl font-semibold text-gray-900">{stats.fileStorage || 0} MB</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
-          <div className="flex items-center">
-            <div className="p-2 bg-red-100 rounded-lg">
-              <FileText className="h-6 w-6 text-red-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">DB Storage</p>
-              <p className="text-2xl font-semibold text-gray-900">{stats.dbStorage || 0} MB</p>
-            </div>
-          </div>
+    <div className="space-y-8">
+      {/* Cyber Header */}
+      <div className="relative bg-gradient-to-r from-gray-900 to-gray-800 rounded-2xl p-6 border border-gray-700">
+        <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/5 to-purple-500/5 rounded-2xl" />
+        <div className="relative">
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">File Matrix</h2>
+          <p className="text-gray-400 mt-1">Advanced file management and analytics</p>
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
+      {/* Neon Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+        {[
+          { title: 'Total Files', value: stats.totalFiles, change: '+12%', icon: FileText, color: 'from-cyan-500 to-blue-500' },
+          { title: 'Completed', value: stats.completedFiles, change: '94.2%', icon: FileText, color: 'from-green-500 to-emerald-500' },
+          { title: 'Downloads', value: stats.totalDownloads, change: '+8%', icon: Download, color: 'from-purple-500 to-pink-500' },
+          { title: 'Success Rate', value: `${stats.successRate}%`, change: 'Above avg', icon: FileText, color: 'from-yellow-500 to-orange-500' },
+          { title: 'Storage', value: `${stats.fileStorage || 2.4}GB`, change: '68% used', icon: FileText, color: 'from-orange-500 to-red-500' },
+          { title: 'Processing', value: files.filter(f => f.status === 'processing').length, change: 'Live', icon: FileText, color: 'from-red-500 to-pink-500' }
+        ].map((stat, i) => (
+          <div key={i} className="group relative bg-gray-900 rounded-xl p-4 border border-gray-700 hover:border-gray-600 transition-all duration-300">
+            <div className={`absolute inset-0 bg-gradient-to-r ${stat.color} opacity-0 group-hover:opacity-10 rounded-xl transition-opacity duration-300`} />
+            <div className="relative">
+              <div className="flex items-center justify-between mb-2">
+                <stat.icon className={`h-6 w-6 bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`} />
+                <span className="text-xs text-gray-400">{stat.change}</span>
+              </div>
+              <div className="text-2xl font-bold text-white mb-1">{stat.value}</div>
+              <div className="text-gray-400 text-xs">{stat.title}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Cyber Filters */}
+      <div className="bg-gray-900 rounded-xl p-6 border border-gray-700">
         <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex-1">
+          <div className="flex-1 relative">
             <input
               type="text"
-              placeholder="Search files or users..."
+              placeholder="Search quantum files..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all"
             />
           </div>
-          <div className="flex items-center space-x-2">
-            <Filter className="h-5 w-5 text-gray-400" />
+          <div className="flex items-center space-x-3">
+            <Filter className="h-5 w-5 text-cyan-400" />
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
             >
               <option value="all">All Status</option>
               <option value="completed">Completed</option>
@@ -310,90 +262,67 @@ const AdminFiles = () => {
         </div>
       </div>
 
-      {/* Files Table */}
-      <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+      {/* Futuristic Table */}
+      <div className="bg-gray-900 rounded-xl border border-gray-700 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
+            <thead className="bg-gray-800 border-b border-gray-700">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  File
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Conversion
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  User
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Date
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Downloads
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
+                {['File', 'Conversion', 'User', 'Status', 'Date', 'Downloads', 'Actions'].map((header) => (
+                  <th key={header} className="px-6 py-4 text-left text-xs font-medium text-cyan-400 uppercase tracking-wider">
+                    {header}
+                  </th>
+                ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="divide-y divide-gray-800">
               {filteredFiles.map((file) => (
-                <tr key={file.id} className="hover:bg-gray-50">
+                <tr key={file.id} className="hover:bg-gray-800/50 transition-colors">
                   <td className="px-6 py-4">
                     <div>
-                      <p className="font-medium text-gray-900 truncate max-w-xs">{file.fileName}</p>
-                      <p className="text-sm text-gray-500">{file.fileSize}</p>
+                      <p className="font-medium text-white truncate max-w-xs">{file.fileName}</p>
+                      <p className="text-sm text-gray-400">{file.fileSize}</p>
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="text-sm">
-                      <span className="font-medium text-gray-900">{file.originalFormat}</span>
+                    <div className="text-sm flex items-center">
+                      <span className="text-cyan-400 font-medium">{file.originalFormat}</span>
                       <span className="text-gray-500 mx-2">→</span>
-                      <span className="font-medium text-gray-900">{file.convertedFormat}</span>
+                      <span className="text-purple-400 font-medium">{file.convertedFormat}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <span className="text-sm text-gray-900">{file.userEmail}</span>
+                    <span className="text-sm text-gray-300">{file.userEmail}</span>
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(file.status)}`}>
+                    <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${
+                      file.status === 'completed' ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
+                      file.status === 'processing' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' :
+                      'bg-red-500/20 text-red-400 border border-red-500/30'
+                    }`}>
                       {file.status}
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex items-center text-sm text-gray-500">
+                    <div className="flex items-center text-sm text-gray-400">
                       <Calendar className="h-4 w-4 mr-2" />
                       {formatDate(file.uploadDate)}
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <span className="text-sm text-gray-900">{file.downloadCount}</span>
+                    <span className="text-sm text-white font-medium">{file.downloadCount}</span>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center space-x-2">
-                      <button
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                        title="View Details"
-                      >
+                      <button className="p-2 text-cyan-400 hover:bg-cyan-500/20 rounded-lg transition-colors" title="View">
                         <Eye className="h-4 w-4" />
                       </button>
                       {file.status === 'completed' && (
-                        <button
-                          onClick={() => handleDownload(file.id, file.fileName)}
-                          className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                          title="Download"
-                        >
+                        <button onClick={() => handleDownload(file.id, file.fileName)} className="p-2 text-green-400 hover:bg-green-500/20 rounded-lg transition-colors" title="Download">
                           <Download className="h-4 w-4" />
                         </button>
                       )}
-                      <button
-                        onClick={() => handleDelete(file.id)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Delete"
-                      >
+                      <button onClick={() => handleDelete(file.id)} className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg transition-colors" title="Delete">
                         <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
@@ -406,9 +335,9 @@ const AdminFiles = () => {
 
         {filteredFiles.length === 0 && (
           <div className="text-center py-12">
-            <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No files found</h3>
-            <p className="text-gray-500">No files match your current filter criteria.</p>
+            <FileText className="h-12 w-12 text-gray-500 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-white mb-2">No files detected</h3>
+            <p className="text-gray-400">Adjust your quantum filters to reveal hidden files.</p>
           </div>
         )}
       </div>

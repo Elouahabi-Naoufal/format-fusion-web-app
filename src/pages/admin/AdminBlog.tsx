@@ -239,19 +239,41 @@ const AdminBlog = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Blog Posts</h2>
-          <p className="text-gray-600">Manage your blog content</p>
+      {/* Enhanced Header */}
+      <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Blog Management</h2>
+            <p className="text-gray-600">Create and manage your blog content</p>
+            <div className="flex items-center space-x-4 mt-3">
+              <div className="flex items-center space-x-2 text-sm text-gray-500">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <span>{posts.filter(p => p.status === 'published').length} Published</span>
+              </div>
+              <div className="flex items-center space-x-2 text-sm text-gray-500">
+                <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                <span>{posts.filter(p => p.status === 'draft').length} Drafts</span>
+              </div>
+              <div className="flex items-center space-x-2 text-sm text-gray-500">
+                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                <span>{posts.filter(p => p.featured).length} Featured</span>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center space-x-3">
+            <button className="inline-flex items-center px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+              <Eye className="h-4 w-4 mr-2" />
+              Preview Site
+            </button>
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-medium rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+            >
+              <Plus className="h-5 w-5 mr-2" />
+              Create New Post
+            </button>
+          </div>
         </div>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-medium rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all duration-200"
-        >
-          <Plus className="h-5 w-5 mr-2" />
-          New Post
-        </button>
       </div>
 
       {/* Posts Table */}

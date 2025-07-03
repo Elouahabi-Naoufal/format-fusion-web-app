@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import Layout from '../components/Layout';
+
 import { api } from '../lib/api';
 import { 
   Settings, 
@@ -145,55 +145,65 @@ const Admin = () => {
   };
 
   return (
-    <Layout>
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Admin Panel</h1>
-            <p className="text-gray-600">Manage your file conversion platform</p>
-          </div>
-
-          <div className="flex space-x-8">
-            {/* Sidebar Navigation */}
-            <div className="w-64 bg-white rounded-xl shadow-lg p-6 border border-gray-200 h-fit">
-              <nav className="space-y-2">
-                {menuItems.map((item, index) => (
-                  <Link
-                    key={index}
-                    to={item.path}
-                    className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors duration-200 ${
-                      isActive(item.path)
-                        ? 'bg-purple-100 text-purple-700'
-                        : 'text-gray-600 hover:bg-gray-100'
-                    }`}
-                  >
-                    <item.icon className="h-5 w-5" />
-                    <span className="font-medium">{item.name}</span>
-                  </Link>
-                ))}
-              </nav>
-              
-              {/* Logout Button */}
-              <div className="mt-8 pt-6 border-t border-gray-200">
-                <button
-                  onClick={handleLogout}
-                  className="flex items-center space-x-3 px-3 py-2 rounded-lg text-red-600 hover:bg-red-50 transition-colors duration-200 w-full"
-                >
-                  <LogOut className="h-5 w-5" />
-                  <span className="font-medium">Logout</span>
-                </button>
+    <div className="min-h-screen bg-gray-50">
+      <div className="flex">
+        {/* Professional Sidebar */}
+        <div className="w-64 bg-white shadow-lg border-r border-gray-200 min-h-screen">
+          <div className="p-6">
+            <div className="flex items-center space-x-3 mb-8">
+              <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
+                <BarChart3 className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-lg font-bold text-gray-900">FormatFusion</h1>
+                <p className="text-xs text-gray-500">Admin Panel</p>
               </div>
             </div>
-
-            {/* Main Content */}
-            <div className="flex-grow">
-              <Outlet />
-            </div>
+            
+            <nav className="space-y-1">
+              {menuItems.map((item, index) => (
+                <Link
+                  key={index}
+                  to={item.path}
+                  className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 group ${
+                    isActive(item.path)
+                      ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-600'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                  }`}
+                >
+                  <item.icon className={`h-5 w-5 ${
+                    isActive(item.path) ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-600'
+                  }`} />
+                  <div className="flex-1">
+                    <span className="font-medium">{item.name}</span>
+                    <p className={`text-xs mt-0.5 ${
+                      isActive(item.path) ? 'text-blue-500' : 'text-gray-400'
+                    }`}>
+                      {item.description}
+                    </p>
+                  </div>
+                </Link>
+              ))}
+            </nav>
+          </div>
+          
+          <div className="absolute bottom-6 left-6 right-6">
+            <button
+              onClick={handleLogout}
+              className="flex items-center space-x-3 px-4 py-3 rounded-lg text-red-600 hover:bg-red-50 transition-all duration-200 w-full"
+            >
+              <LogOut className="h-5 w-5" />
+              <span className="font-medium">Logout</span>
+            </button>
           </div>
         </div>
+
+        {/* Main Content */}
+        <div className="flex-1">
+          <Outlet />
+        </div>
       </div>
-    </Layout>
+    </div>
   );
 };
 
