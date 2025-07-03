@@ -11,6 +11,7 @@ import AdminLogin from "./pages/admin/AdminLogin";
 import AdminBlog from "./pages/admin/AdminBlog";
 import AdminFiles from "./pages/admin/AdminFiles";
 import AdminContent from "./pages/admin/AdminContent";
+import AdminUsers from "./pages/admin/AdminUsers";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import NotFound from "./pages/NotFound";
@@ -35,6 +36,7 @@ const App = () => (
             <Route path="blog" element={<AdminBlog />} />
             <Route path="files" element={<AdminFiles />} />
             <Route path="content" element={<AdminContent />} />
+            <Route path="users" element={<AdminUsers />} />
             <Route path="settings" element={<AdminSettings />} />
           </Route>
           <Route path="/secret-admin-panel-x9z8y7" element={<ProtectedRoute><Admin /></ProtectedRoute>} />

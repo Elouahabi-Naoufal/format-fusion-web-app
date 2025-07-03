@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, Eye, Calendar, User } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useToast } from '../../hooks/use-toast';
+import { useTheme } from '../../hooks/useTheme';
 
 interface BlogPost {
   id: string;
@@ -18,6 +19,7 @@ interface BlogPost {
 }
 
 const AdminBlog = () => {
+  const { isDark } = useTheme('admin-theme');
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
@@ -238,9 +240,12 @@ const AdminBlog = () => {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Enhanced Header */}
-      <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+    <div className={`min-h-screen p-6 ${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}>
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Enhanced Header */}
+        <div className={`rounded-xl shadow-lg border p-6 ${
+          isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+        }`}>
         <div className="flex justify-between items-center">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">Blog Management</h2>
@@ -276,8 +281,10 @@ const AdminBlog = () => {
         </div>
       </div>
 
-      {/* Posts Table */}
-      <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+        {/* Posts Table */}
+        <div className={`rounded-xl shadow-lg border overflow-hidden ${
+          isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+        }`}>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
@@ -506,6 +513,7 @@ const AdminBlog = () => {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Save, Globe, Eye, Edit3, Image, Type, Palette } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useToast } from '../../hooks/use-toast';
+import { useTheme } from '../../hooks/useTheme';
 
 interface PageContent {
   id: string;
@@ -14,6 +15,7 @@ interface PageContent {
 }
 
 const AdminContent = () => {
+  const { isDark } = useTheme('admin-theme');
   const [content, setContent] = useState<PageContent[]>([]);
   const [selectedPage, setSelectedPage] = useState('home');
   const [editingItem, setEditingItem] = useState<PageContent | null>(null);
@@ -144,8 +146,10 @@ const AdminContent = () => {
         <p className="text-gray-600">Edit and manage your website content</p>
       </div>
 
-      {/* Page Selector */}
-      <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+        {/* Page Selector */}
+        <div className={`rounded-xl shadow-lg border p-6 ${
+          isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+        }`}>
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Select Page to Edit</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {pages.map((page) => (
@@ -165,8 +169,10 @@ const AdminContent = () => {
         </div>
       </div>
 
-      {/* Content Sections */}
-      <div className="bg-white rounded-xl shadow-lg border border-gray-200">
+        {/* Content Sections */}
+        <div className={`rounded-xl shadow-lg border ${
+          isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+        }`}>
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold text-gray-900">
