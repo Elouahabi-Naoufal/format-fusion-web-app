@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-
 import { api } from '../lib/api';
+import { useTheme } from '../hooks/useTheme';
 import { 
   Settings, 
   FileText, 
@@ -12,10 +12,13 @@ import {
   PenTool,
   Globe,
   Database,
-  LogOut
+  LogOut,
+  Moon,
+  Sun
 } from 'lucide-react';
 
 const Admin = () => {
+  const { isDark, toggleTheme } = useTheme('admin-theme');
   const location = useLocation();
   const navigate = useNavigate();
   const isAdminHome = location.pathname === '/admin';
@@ -145,19 +148,31 @@ const Admin = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className={`min-h-screen ${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}>
       <div className="flex">
         {/* Professional Sidebar */}
-        <div className="w-64 bg-white shadow-lg border-r border-gray-200 min-h-screen">
+        <div className={`w-64 shadow-lg border-r min-h-screen ${
+          isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+        }`}>
           <div className="p-6">
-            <div className="flex items-center space-x-3 mb-8">
-              <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
-                <BarChart3 className="h-6 w-6 text-white" />
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
+                  <BarChart3 className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h1 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>FormatFusion</h1>
+                  <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Admin Panel</p>
+                </div>
               </div>
-              <div>
-                <h1 className="text-lg font-bold text-gray-900">FormatFusion</h1>
-                <p className="text-xs text-gray-500">Admin Panel</p>
-              </div>
+              <button
+                onClick={toggleTheme}
+                className={`p-2 rounded-lg transition-colors ${
+                  isDark ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-600'
+                }`}
+              >
+                {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              </button>
             </div>
             
             <nav className="space-y-1">
@@ -167,17 +182,25 @@ const Admin = () => {
                   to={item.path}
                   className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 group ${
                     isActive(item.path)
-                      ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-600'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                      ? isDark 
+                        ? 'bg-blue-900/50 text-blue-300 border-r-2 border-blue-500'
+                        : 'bg-blue-50 text-blue-700 border-r-2 border-blue-600'
+                      : isDark
+                        ? 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                   }`}
                 >
                   <item.icon className={`h-5 w-5 ${
-                    isActive(item.path) ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-600'
+                    isActive(item.path) 
+                      ? isDark ? 'text-blue-400' : 'text-blue-600'
+                      : isDark ? 'text-gray-400 group-hover:text-gray-300' : 'text-gray-400 group-hover:text-gray-600'
                   }`} />
                   <div className="flex-1">
                     <span className="font-medium">{item.name}</span>
                     <p className={`text-xs mt-0.5 ${
-                      isActive(item.path) ? 'text-blue-500' : 'text-gray-400'
+                      isActive(item.path) 
+                        ? isDark ? 'text-blue-400' : 'text-blue-500'
+                        : isDark ? 'text-gray-500' : 'text-gray-400'
                     }`}>
                       {item.description}
                     </p>
@@ -190,7 +213,9 @@ const Admin = () => {
           <div className="absolute bottom-6 left-6 right-6">
             <button
               onClick={handleLogout}
-              className="flex items-center space-x-3 px-4 py-3 rounded-lg text-red-600 hover:bg-red-50 transition-all duration-200 w-full"
+              className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 w-full ${
+                isDark ? 'text-red-400 hover:bg-red-900/20' : 'text-red-600 hover:bg-red-50'
+              }`}
             >
               <LogOut className="h-5 w-5" />
               <span className="font-medium">Logout</span>
