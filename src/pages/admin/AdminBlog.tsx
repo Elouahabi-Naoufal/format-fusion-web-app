@@ -248,25 +248,27 @@ const AdminBlog = () => {
         }`}>
         <div className="flex justify-between items-center">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">Blog Management</h2>
-            <p className="text-gray-600">Create and manage your blog content</p>
+            <h2 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Blog Management</h2>
+            <p className={`${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Create and manage your blog content</p>
             <div className="flex items-center space-x-4 mt-3">
-              <div className="flex items-center space-x-2 text-sm text-gray-500">
+              <div className={`flex items-center space-x-2 text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                 <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                 <span>{posts.filter(p => p.status === 'published').length} Published</span>
               </div>
-              <div className="flex items-center space-x-2 text-sm text-gray-500">
+              <div className={`flex items-center space-x-2 text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                 <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
                 <span>{posts.filter(p => p.status === 'draft').length} Drafts</span>
               </div>
-              <div className="flex items-center space-x-2 text-sm text-gray-500">
+              <div className={`flex items-center space-x-2 text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                 <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                 <span>{posts.filter(p => p.featured).length} Featured</span>
               </div>
             </div>
           </div>
           <div className="flex items-center space-x-3">
-            <button className="inline-flex items-center px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+            <button className={`inline-flex items-center px-4 py-2 border rounded-lg transition-colors ${
+              isDark ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+            }`}>
               <Eye className="h-4 w-4 mr-2" />
               Preview Site
             </button>
@@ -287,32 +289,44 @@ const AdminBlog = () => {
         }`}>
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
+            <thead className={`border-b ${
+              isDark ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'
+            }`}>
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                  isDark ? 'text-gray-400' : 'text-gray-500'
+                }`}>
                   Title
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                  isDark ? 'text-gray-400' : 'text-gray-500'
+                }`}>
                   Author
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                  isDark ? 'text-gray-400' : 'text-gray-500'
+                }`}>
                   Status
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                  isDark ? 'text-gray-400' : 'text-gray-500'
+                }`}>
                   Date
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                  isDark ? 'text-gray-400' : 'text-gray-500'
+                }`}>
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className={`divide-y ${isDark ? 'divide-gray-700' : 'divide-gray-200'}`}>
               {posts.map((post) => (
-                <tr key={post.id} className="hover:bg-gray-50">
+                <tr key={post.id} className={`${isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-50'}`}>
                   <td className="px-6 py-4">
                     <div>
-                      <p className="font-medium text-gray-900">{post.title}</p>
-                      <p className="text-sm text-gray-500 truncate max-w-xs">{post.excerpt}</p>
+                      <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>{post.title}</p>
+                      <p className={`text-sm truncate max-w-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{post.excerpt}</p>
                       {post.featured && (
                         <span className="inline-block mt-1 px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">
                           Featured
@@ -322,8 +336,8 @@ const AdminBlog = () => {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center">
-                      <User className="h-4 w-4 text-gray-400 mr-2" />
-                      <span className="text-sm text-gray-900">{post.author}</span>
+                      <User className={`h-4 w-4 mr-2 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
+                      <span className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>{post.author}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -336,7 +350,7 @@ const AdminBlog = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex items-center text-sm text-gray-500">
+                    <div className={`flex items-center text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                       <Calendar className="h-4 w-4 mr-2" />
                       {new Date(post.publishDate).toLocaleDateString()}
                     </div>
@@ -345,20 +359,26 @@ const AdminBlog = () => {
                     <div className="flex items-center space-x-2">
                       <button
                         onClick={() => handleEdit(post)}
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        className={`p-2 rounded-lg transition-colors ${
+                          isDark ? 'text-blue-400 hover:bg-blue-900/20' : 'text-blue-600 hover:bg-blue-50'
+                        }`}
                         title="Edit"
                       >
                         <Edit className="h-4 w-4" />
                       </button>
                       <button
-                        className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                        className={`p-2 rounded-lg transition-colors ${
+                          isDark ? 'text-green-400 hover:bg-green-900/20' : 'text-green-600 hover:bg-green-50'
+                        }`}
                         title="View"
                       >
                         <Eye className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => handleDelete(post.id)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        className={`p-2 rounded-lg transition-colors ${
+                          isDark ? 'text-red-400 hover:bg-red-900/20' : 'text-red-600 hover:bg-red-50'
+                        }`}
                         title="Delete"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -375,9 +395,11 @@ const AdminBlog = () => {
       {/* Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-screen overflow-y-auto m-4">
-            <div className="p-6 border-b border-gray-200">
-              <h3 className="text-xl font-semibold text-gray-900">
+          <div className={`rounded-xl shadow-2xl w-full max-w-4xl max-h-screen overflow-y-auto m-4 ${
+            isDark ? 'bg-gray-800' : 'bg-white'
+          }`}>
+            <div className={`p-6 border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
+              <h3 className={`text-xl font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
                 {editingPost ? 'Edit Post' : 'Create New Post'}
               </h3>
             </div>
@@ -385,14 +407,16 @@ const AdminBlog = () => {
             <form onSubmit={handleSubmit} className="p-6 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                     Title
                   </label>
                   <input
                     type="text"
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
+                      isDark ? 'bg-gray-700 border-gray-600 text-white' : 'border-gray-300'
+                    }`}
                     required
                   />
                 </div>
@@ -494,11 +518,13 @@ const AdminBlog = () => {
                 </label>
               </div>
 
-              <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+              <div className={`flex justify-end space-x-4 pt-6 border-t ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
                 <button
                   type="button"
                   onClick={closeModal}
-                  className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                  className={`px-6 py-2 border rounded-lg transition-colors ${
+                    isDark ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                  }`}
                 >
                   Cancel
                 </button>
